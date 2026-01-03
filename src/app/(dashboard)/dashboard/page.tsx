@@ -1,0 +1,326 @@
+import { auth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import {
+  Users,
+  GraduationCap,
+  IndianRupee,
+  UserCheck,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+} from 'lucide-react'
+
+export const metadata = {
+  title: 'Dashboard | School Management System',
+}
+
+async function getDashboardStats() {
+  const supabase = await createClient()
+  const today = new Date().toISOString().split('T')[0]
+  const currentMonth = new Date()
+  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString().split('T')[0]
+  const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString().split('T')[0]
+
+  // Previous month for comparison
+  const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+  const firstDayPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1).toISOString().split('T')[0]
+  const lastDayPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).toISOString().split('T')[0]
+
+  // Fetch all stats in parallel
+  const [
+    studentsResult,
+    prevStudentsResult,
+    teachersResult,
+    prevTeachersResult,
+    paymentsResult,
+    prevPaymentsResult,
+    todayAttendanceResult,
+    totalStudentsForAttendance,
+    recentActivityResult,
+  ] = await Promise.all([
+    // Current students count
+    supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    // Previous month students (approximate by created_at)
+    supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active').lt('created_at', firstDayOfMonth),
+    // Current teachers count
+    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('employee_type', 'teaching').eq('status', 'active'),
+    // Previous month teachers
+    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('employee_type', 'teaching').eq('status', 'active').lt('created_at', firstDayOfMonth),
+    // This month's fee collection
+    supabase.from('fee_payments').select('amount').gte('payment_date', firstDayOfMonth).lte('payment_date', lastDayOfMonth),
+    // Previous month's fee collection
+    supabase.from('fee_payments').select('amount').gte('payment_date', firstDayPrevMonth).lte('payment_date', lastDayPrevMonth),
+    // Today's attendance (present students)
+    supabase.from('student_attendance').select('id', { count: 'exact', head: true }).eq('date', today).in('status', ['present', 'late']),
+    // Total students for attendance calculation
+    supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    // Recent activity - last 5 fee payments
+    supabase.from('fee_payments').select(`
+      id,
+      amount,
+      payment_date,
+      created_at,
+      fee_invoices (
+        students (
+          first_name,
+          last_name
+        )
+      )
+    `).order('created_at', { ascending: false }).limit(5),
+  ])
+
+  // Calculate values
+  const totalStudents = studentsResult.count || 0
+  const prevTotalStudents = prevStudentsResult.count || 0
+  const studentChange = prevTotalStudents > 0
+    ? Math.round(((totalStudents - prevTotalStudents) / prevTotalStudents) * 100)
+    : 0
+
+  const totalTeachers = teachersResult.count || 0
+  const prevTotalTeachers = prevTeachersResult.count || 0
+  const teacherChange = prevTotalTeachers > 0
+    ? Math.round(((totalTeachers - prevTotalTeachers) / prevTotalTeachers) * 100)
+    : 0
+
+  const thisMonthCollection = (paymentsResult.data as { amount: number }[] | null)?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+  const prevMonthCollection = (prevPaymentsResult.data as { amount: number }[] | null)?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
+  const feeChange = prevMonthCollection > 0
+    ? Math.round(((thisMonthCollection - prevMonthCollection) / prevMonthCollection) * 100)
+    : 0
+
+  const presentToday = todayAttendanceResult.count || 0
+  const totalForAttendance = totalStudentsForAttendance.count || 1
+  const attendancePercentage = totalForAttendance > 0
+    ? Math.round((presentToday / totalForAttendance) * 100)
+    : 0
+
+  return {
+    totalStudents,
+    studentChange,
+    totalTeachers,
+    teacherChange,
+    thisMonthCollection,
+    feeChange,
+    attendancePercentage,
+    recentActivity: recentActivityResult.data || [],
+  }
+}
+
+function formatCurrency(amount: number): string {
+  if (amount >= 10000000) {
+    return `₹${(amount / 10000000).toFixed(2)}Cr`
+  } else if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(2)}L`
+  } else if (amount >= 1000) {
+    return `₹${(amount / 1000).toFixed(2)}K`
+  }
+  return `₹${amount.toLocaleString('en-IN')}`
+}
+
+function getTimeAgo(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return date.toLocaleDateString('en-IN')
+}
+
+export default async function DashboardPage() {
+  const session = await auth()
+  const user = session?.user
+
+  const dashboardData = await getDashboardStats()
+
+  const stats = [
+    {
+      title: 'Total Students',
+      value: dashboardData.totalStudents.toLocaleString('en-IN'),
+      change: dashboardData.studentChange,
+      icon: Users,
+      color: 'bg-blue-500',
+    },
+    {
+      title: 'Total Teachers',
+      value: dashboardData.totalTeachers.toString(),
+      change: dashboardData.teacherChange,
+      icon: GraduationCap,
+      color: 'bg-green-500',
+    },
+    {
+      title: 'Fee Collection',
+      value: formatCurrency(dashboardData.thisMonthCollection),
+      change: dashboardData.feeChange,
+      icon: IndianRupee,
+      color: 'bg-yellow-500',
+    },
+    {
+      title: 'Today\'s Attendance',
+      value: `${dashboardData.attendancePercentage}%`,
+      change: 0,
+      icon: UserCheck,
+      color: 'bg-purple-500',
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome message */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Welcome back, {user?.email?.split('@')[0]}!
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Here&apos;s what&apos;s happening at your school today.
+        </p>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">{stat.title}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {stat.value}
+                  </p>
+                  {stat.change !== 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      {stat.change > 0 ? (
+                        <TrendingUp className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 text-red-500" />
+                      )}
+                      <span className={`text-xs ${stat.change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stat.change > 0 ? '+' : ''}{stat.change}%
+                      </span>
+                      <span className="text-xs text-gray-500">vs last month</span>
+                    </div>
+                  )}
+                </div>
+                <div className={`p-3 rounded-lg ${stat.color}`}>
+                  <stat.icon className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Quick actions and recent activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <a
+                href="/attendance/students"
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <UserCheck className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Mark Attendance</span>
+              </a>
+              <a
+                href="/fees"
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <IndianRupee className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Collect Fees</span>
+              </a>
+              <a
+                href="/students/new"
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <Users className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Add Student</span>
+              </a>
+              <a
+                href="/whatsapp/send"
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <Calendar className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Send Notice</span>
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {dashboardData.recentActivity.length > 0 ? (
+                dashboardData.recentActivity.map((activity: any) => {
+                  const studentName = activity.fee_invoices?.students
+                    ? `${activity.fee_invoices.students.first_name} ${activity.fee_invoices.students.last_name}`
+                    : 'Unknown'
+                  const timeAgo = getTimeAgo(new Date(activity.created_at))
+                  return (
+                    <div
+                      key={activity.id}
+                      className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          Fee payment: {formatCurrency(activity.amount)}
+                        </p>
+                        <p className="text-xs text-gray-500">from {studentName}</p>
+                      </div>
+                      <span className="text-xs text-gray-400">{timeAgo}</span>
+                    </div>
+                  )
+                })
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Upcoming Events */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Events</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { title: 'Parent-Teacher Meeting', date: 'Jan 15, 2025', type: 'Meeting' },
+              { title: 'Annual Sports Day', date: 'Jan 20, 2025', type: 'Event' },
+              { title: 'Unit Test 3', date: 'Jan 25, 2025', type: 'Exam' },
+            ].map((event, index) => (
+              <div
+                key={index}
+                className="p-4 rounded-lg border border-gray-200 hover:border-primary/50 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium text-primary">
+                    {event.type}
+                  </span>
+                </div>
+                <h4 className="font-medium text-gray-900">{event.title}</h4>
+                <p className="text-sm text-gray-500 mt-1">{event.date}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
