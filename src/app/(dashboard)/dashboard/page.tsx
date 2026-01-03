@@ -1,4 +1,3 @@
-import { auth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import {
@@ -133,8 +132,8 @@ function getTimeAgo(date: Date): string {
 }
 
 export default async function DashboardPage() {
-  const session = await auth()
-  const user = session?.user
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const dashboardData = await getDashboardStats()
 

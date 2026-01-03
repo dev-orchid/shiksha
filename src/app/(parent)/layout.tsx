@@ -1,19 +1,27 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function ParentLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
-  // Check if user is a parent
-  if (session.user.role !== 'parent') {
+  // Check if user is a parent by fetching their role from the users table
+  const { data: userData } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const userRole = (userData as { role: string } | null)?.role
+  if (userRole !== 'parent') {
     redirect('/dashboard')
   }
 

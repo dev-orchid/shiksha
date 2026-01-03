@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from '@/components/providers/SessionProvider'
 import Link from 'next/link'
-import { cn } from '@/lib/utils/cn'
 import { ROLE_LABELS } from '@/lib/constants/roles'
 import {
   Menu,
@@ -20,12 +19,11 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
-  const { data: session } = useSession()
+  const { profile, signOut } = useSession()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
 
-  const user = session?.user
-  const roleLabel = user?.role ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] : ''
+  const roleLabel = profile?.role ? ROLE_LABELS[profile.role as keyof typeof ROLE_LABELS] : ''
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
@@ -40,10 +38,10 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
           </button>
 
           {/* School name */}
-          {user?.schoolName && (
+          {profile?.schoolName && (
             <div className="hidden sm:block">
               <span className="text-sm font-medium text-gray-900">
-                {user.schoolName}
+                {profile.schoolName}
               </span>
             </div>
           )}
@@ -92,12 +90,12 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             >
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
-                  {user?.email?.charAt(0).toUpperCase()}
+                  {profile?.email?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="hidden sm:block text-left">
                 <p className="text-sm font-medium text-gray-900">
-                  {user?.email?.split('@')[0]}
+                  {profile?.email?.split('@')[0]}
                 </p>
                 <p className="text-xs text-gray-500">{roleLabel}</p>
               </div>
@@ -113,7 +111,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-20 py-1">
                   <div className="px-4 py-3 border-b border-gray-200">
                     <p className="text-sm font-medium text-gray-900">
-                      {user?.email}
+                      {profile?.email}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">{roleLabel}</p>
                   </div>
@@ -135,7 +133,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                   </Link>
                   <hr className="my-1" />
                   <button
-                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    onClick={() => signOut()}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                   >
                     <LogOut className="h-4 w-4" />
