@@ -1,16 +1,15 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, FileText } from 'lucide-react'
+import { getSupabaseClient } from '@/lib/supabase/client'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
-  const error = searchParams.get('error')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,15 +23,16 @@ function LoginForm() {
     setLoginError('')
 
     try {
-      const result = await signIn('credentials', {
+      const supabase = getSupabaseClient()
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        redirect: false,
       })
 
-      if (result?.error) {
-        setLoginError('Invalid email or password')
-      } else {
+      if (error) {
+        setLoginError(error.message || 'Invalid email or password')
+      } else if (data.user) {
         router.push(callbackUrl)
         router.refresh()
       }
@@ -72,11 +72,9 @@ function LoginForm() {
           {/* Form Card */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
             <form onSubmit={handleSubmit} className="space-y-5">
-              {(error || loginError) && (
+              {loginError && (
                 <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                  <p className="text-sm text-red-600">
-                    {loginError || 'Authentication failed. Please try again.'}
-                  </p>
+                  <p className="text-sm text-red-600">{loginError}</p>
                 </div>
               )}
 
