@@ -109,11 +109,22 @@ export default function SignupPage() {
     <div className="min-h-screen flex">
       {/* Left Panel - Image Background */}
       <div
-        className="hidden lg:block lg:w-[48%] bg-cover bg-center bg-no-repeat"
+        className="hidden lg:block lg:w-[48%] bg-cover bg-center bg-no-repeat relative"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2071&auto=format&fit=crop')`,
+          backgroundImage: `url('https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop')`,
         }}
-      />
+      >
+        {/* Overlay with gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/70 via-emerald-800/50 to-transparent" />
+
+        {/* Content on image */}
+        <div className="absolute bottom-12 left-12 right-12 text-white">
+          <h2 className="text-3xl font-bold mb-3">Join Us Today</h2>
+          <p className="text-emerald-100 text-lg">
+            Start managing your school efficiently with our powerful tools.
+          </p>
+        </div>
+      </div>
 
       {/* Right Panel - Signup Form */}
       <div className="w-full lg:w-[52%] flex items-center justify-center px-6 py-12 bg-white overflow-auto">
