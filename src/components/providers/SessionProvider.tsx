@@ -44,11 +44,13 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
     const fetchProfile = async (authUser: User) => {
       // Fetch user profile
-      const { data: userData } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('id, email, role, school_id')
         .eq('id', authUser.id)
         .single()
+
+      const userData = data as { id: string; email: string; role: string; school_id: string | null } | null
 
       // Get school_id from user record or fallback to auth metadata
       const schoolId = userData?.school_id || authUser.user_metadata?.school_id || null
@@ -61,7 +63,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
           .select('name')
           .eq('id', schoolId)
           .single()
-        schoolName = schoolData?.name ?? null
+        schoolName = (schoolData as { name: string } | null)?.name ?? null
       }
 
       if (userData) {
