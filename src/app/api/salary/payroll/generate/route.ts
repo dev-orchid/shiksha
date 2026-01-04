@@ -76,37 +76,72 @@ export async function POST(request: NextRequest) {
     const staffIds = activeStaff.map(s => s.id)
     const { data: assignments } = await supabase
       .from('staff_salary_assignments')
-      .select(`
-        id,
-        staff_id,
-        basic_salary,
-        salary_structure_id,
-        is_current,
-        salary_structures (
-          id,
-          name,
-          salary_structure_details (
-            id,
-            amount,
-            percentage,
-            salary_components (
-              id,
-              name,
-              component_type,
-              is_percentage,
-              percentage_of,
-              default_value
-            )
-          )
-        )
-      `)
+      .select('id, staff_id, basic_salary, salary_structure_id, is_current')
       .in('staff_id', staffIds)
       .eq('is_current', true)
+
+    console.log('Assignments found:', assignments?.length || 0)
+
+    // Get unique structure IDs
+    const structureIds = [...new Set(assignments?.filter(a => a.salary_structure_id).map(a => a.salary_structure_id) || [])]
+    console.log('Structure IDs:', structureIds)
+
+    // Fetch structures with their details
+    let structuresMap: Record<string, any> = {}
+    if (structureIds.length > 0) {
+      const { data: structures } = await supabase
+        .from('salary_structures')
+        .select('id, name')
+        .in('id', structureIds)
+
+      // Fetch structure details separately
+      const { data: structureDetails } = await supabase
+        .from('salary_structure_details')
+        .select('id, salary_structure_id, amount, percentage, salary_component_id')
+        .in('salary_structure_id', structureIds)
+
+      // Fetch salary components
+      const componentIds = [...new Set(structureDetails?.map(d => d.salary_component_id) || [])]
+      let componentsMap: Record<string, any> = {}
+      if (componentIds.length > 0) {
+        const { data: salaryComponents } = await supabase
+          .from('salary_components')
+          .select('id, name, component_type, is_percentage, percentage_of, default_value')
+          .in('id', componentIds)
+
+        componentsMap = (salaryComponents || []).reduce((acc, c) => {
+          acc[c.id] = c
+          return acc
+        }, {} as Record<string, any>)
+      }
+
+      // Build structures map with details
+      for (const structure of structures || []) {
+        const details = (structureDetails || [])
+          .filter(d => d.salary_structure_id === structure.id)
+          .map(d => ({
+            ...d,
+            salary_components: componentsMap[d.salary_component_id] || null
+          }))
+        structuresMap[structure.id] = {
+          ...structure,
+          salary_structure_details: details
+        }
+      }
+    }
+
+    console.log('Structures map:', Object.keys(structuresMap).length, 'structures loaded')
+
+    // Build assignments with structure data
+    const assignmentsWithStructures = (assignments || []).map(a => ({
+      ...a,
+      salary_structures: a.salary_structure_id ? structuresMap[a.salary_structure_id] : null
+    }))
 
     // Merge assignments with staff
     const staffWithAssignments = activeStaff.map(staff => ({
       ...staff,
-      staff_salary_assignments: assignments?.filter(a => a.staff_id === staff.id) || []
+      staff_salary_assignments: assignmentsWithStructures.filter(a => a.staff_id === staff.id) || []
     }))
 
     // Check for existing payroll records for this month
@@ -165,10 +200,16 @@ export async function POST(request: NextRequest) {
 
       // Calculate earnings and deductions from structure components
       const structure = currentAssignment.salary_structures
+      console.log('Staff:', staff.first_name, 'Structure:', structure?.name, 'Details count:', structure?.salary_structure_details?.length || 0)
       if (structure?.salary_structure_details) {
         for (const detail of structure.salary_structure_details) {
           const component = detail.salary_components
           if (!component) continue
+
+          // Skip "Basic Salary" component as it's already added above
+          if (component.name.toLowerCase() === 'basic salary' || component.name.toLowerCase() === 'basic') {
+            continue
+          }
 
           let amount = 0
 
@@ -259,14 +300,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      console.log('Total component details to insert:', allComponentDetails.length)
+      console.log('Component details sample:', allComponentDetails.slice(0, 3))
+
       if (allComponentDetails.length > 0) {
-        const { error: detailsError } = await supabase
+        const { data: insertedDetails, error: detailsError } = await supabase
           .from('salary_payroll_details')
           .insert(allComponentDetails)
+          .select()
 
         if (detailsError) {
           console.error('Error inserting payroll details:', detailsError)
           // Don't fail the whole operation, just log the error
+        } else {
+          console.log('Successfully inserted details:', insertedDetails?.length || 0)
         }
       }
     }

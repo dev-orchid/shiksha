@@ -20,63 +20,67 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'school_id is required' }, { status: 400 })
     }
 
-    // Build query for payroll with staff details
-    let query = supabase
+    // First, get payroll records
+    const { data: payrollData, error: payrollError, count } = await supabase
       .from('salary_payroll')
-      .select(`
-        id,
-        month,
-        year,
-        gross_salary,
-        total_deductions,
-        net_salary,
-        working_days,
-        present_days,
-        leave_days,
-        status,
-        staff!inner (
-          id,
-          employee_id,
-          first_name,
-          last_name,
-          designation,
-          department_id,
-          departments (id, name)
-        ),
-        staff_salary_assignments!left (
-          basic_salary
-        )
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('school_id', schoolId)
       .eq('month', month)
       .eq('year', year)
-
-    if (departmentId) {
-      query = query.eq('staff.department_id', departmentId)
-    }
-
-    const { data, error, count } = await query
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
-    if (error) {
-      console.error('Error fetching staff salaries:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (payrollError) {
+      console.error('Error fetching payroll:', payrollError)
+      return NextResponse.json({ error: payrollError.message }, { status: 500 })
     }
 
+    if (!payrollData || payrollData.length === 0) {
+      return NextResponse.json({
+        data: [],
+        summary: { totalStaff: 0, totalMonthlySalary: 0, averageSalary: 0 },
+        pagination: { page, limit, total: 0, totalPages: 0 },
+      })
+    }
+
+    // Get staff IDs and fetch staff details
+    const staffIds = [...new Set(payrollData.map(p => p.staff_id))]
+
+    const { data: staffData } = await supabase
+      .from('staff')
+      .select('id, employee_id, first_name, last_name, designation, department_id')
+      .in('id', staffIds)
+
+    // Get current salary assignments for basic salary
+    const { data: assignmentsData } = await supabase
+      .from('staff_salary_assignments')
+      .select('staff_id, basic_salary')
+      .in('staff_id', staffIds)
+      .eq('is_current', true)
+
+    // Create lookup maps
+    const staffMap = (staffData || []).reduce((acc, s) => {
+      acc[s.id] = s
+      return acc
+    }, {} as Record<string, any>)
+
+    const assignmentMap = (assignmentsData || []).reduce((acc, a) => {
+      acc[a.staff_id] = a
+      return acc
+    }, {} as Record<string, any>)
+
     // Format the response
-    const staffSalaries = data?.map(record => {
-      const staff = record.staff as any
-      const assignment = record.staff_salary_assignments as any
+    const staffSalaries = payrollData.map(record => {
+      const staff = staffMap[record.staff_id]
+      const assignment = assignmentMap[record.staff_id]
       return {
         id: record.id,
         staffId: staff?.id,
         employeeId: staff?.employee_id,
         name: `${staff?.first_name || ''} ${staff?.last_name || ''}`.trim(),
         designation: staff?.designation,
-        department: staff?.departments?.name,
         departmentId: staff?.department_id,
-        basicSalary: assignment?.[0]?.basic_salary || 0,
+        basicSalary: assignment?.basic_salary || record.gross_salary,
         grossSalary: record.gross_salary,
         deductions: record.total_deductions,
         netSalary: record.net_salary,
@@ -85,13 +89,18 @@ export async function GET(request: NextRequest) {
         leaveDays: record.leave_days,
         status: record.status,
       }
-    }) || []
+    })
+
+    // Filter by department if provided
+    let filteredSalaries = staffSalaries
+    if (departmentId) {
+      filteredSalaries = filteredSalaries.filter(s => s.departmentId === departmentId)
+    }
 
     // Filter by search if provided
-    let filteredSalaries = staffSalaries
     if (search) {
       const searchLower = search.toLowerCase()
-      filteredSalaries = staffSalaries.filter(s =>
+      filteredSalaries = filteredSalaries.filter(s =>
         s.name.toLowerCase().includes(searchLower) ||
         s.employeeId?.toLowerCase().includes(searchLower) ||
         s.designation?.toLowerCase().includes(searchLower)

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { EMPLOYEE_TYPE_OPTIONS } from '@/lib/constants/employee-types'
 
 interface Department {
   id: string
@@ -281,11 +282,7 @@ export default function EditTeacherPage() {
                   name="employee_type"
                   value={formData.employee_type}
                   onChange={handleChange}
-                  options={[
-                    { value: 'teaching', label: 'Teaching' },
-                    { value: 'non-teaching', label: 'Non-Teaching' },
-                    { value: 'admin', label: 'Admin' },
-                  ]}
+                  options={EMPLOYEE_TYPE_OPTIONS}
                 />
                 <Select
                   label="Employment Type"

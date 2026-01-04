@@ -43,30 +43,34 @@ export function SessionProvider({ children }: SessionProviderProps) {
     const supabase = getSupabaseClient()
 
     const fetchProfile = async (authUser: User) => {
-      // Fetch user profile with school info
-      const { data } = await supabase
+      // Fetch user profile
+      const { data: userData } = await supabase
         .from('users')
-        .select('id, email, role, school_id, schools(name)')
+        .select('id, email, role, school_id')
         .eq('id', authUser.id)
         .single()
 
-      interface UserData {
-        id: string
-        email: string
-        role: string
-        school_id: string | null
-        schools: { name: string } | null
-      }
+      // Get school_id from user record or fallback to auth metadata
+      const schoolId = userData?.school_id || authUser.user_metadata?.school_id || null
 
-      const userData = data as UserData | null
+      // Fetch school name separately if we have a school_id
+      let schoolName: string | null = null
+      if (schoolId) {
+        const { data: schoolData } = await supabase
+          .from('schools')
+          .select('name')
+          .eq('id', schoolId)
+          .single()
+        schoolName = schoolData?.name ?? null
+      }
 
       if (userData) {
         setProfile({
           id: userData.id,
           email: userData.email,
           role: userData.role,
-          schoolId: userData.school_id,
-          schoolName: userData.schools?.name ?? null,
+          schoolId: schoolId,
+          schoolName: schoolName,
         })
       } else {
         // Fallback to user_metadata if user record doesn't exist yet
@@ -74,8 +78,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
           id: authUser.id,
           email: authUser.email || '',
           role: authUser.user_metadata?.role || 'user',
-          schoolId: authUser.user_metadata?.school_id || null,
-          schoolName: null,
+          schoolId: schoolId,
+          schoolName: schoolName,
         })
       }
     }

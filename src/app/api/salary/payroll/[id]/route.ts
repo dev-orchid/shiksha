@@ -10,21 +10,10 @@ export async function GET(
     const supabase = await createApiClient()
     const { id } = await params
 
-    // Get payroll record with staff details
+    // Get payroll record first
     const { data: payroll, error: payrollError } = await supabase
       .from('salary_payroll')
-      .select(`
-        *,
-        staff (
-          id,
-          first_name,
-          last_name,
-          employee_id,
-          designation,
-          department_id,
-          departments (id, name)
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single()
 
@@ -37,6 +26,27 @@ export async function GET(
       return NextResponse.json({ error: 'Payroll not found' }, { status: 404 })
     }
 
+    // Get staff details separately to avoid relationship ambiguity
+    let staffData = null
+    if (payroll.staff_id) {
+      const { data: staff } = await supabase
+        .from('staff')
+        .select('id, first_name, last_name, employee_id, designation, department_id')
+        .eq('id', payroll.staff_id)
+        .single()
+
+      if (staff?.department_id) {
+        const { data: dept } = await supabase
+          .from('departments')
+          .select('id, name')
+          .eq('id', staff.department_id)
+          .single()
+        staffData = { ...staff, departments: dept }
+      } else {
+        staffData = staff
+      }
+    }
+
     // Get payroll component details
     const { data: details, error: detailsError } = await supabase
       .from('salary_payroll_details')
@@ -44,6 +54,9 @@ export async function GET(
       .eq('payroll_id', id)
       .order('component_type', { ascending: true })
       .order('component_name', { ascending: true })
+
+    console.log('Fetching payroll details for id:', id)
+    console.log('Details found:', details?.length || 0, details)
 
     if (detailsError) {
       console.error('Error fetching payroll details:', detailsError)
@@ -56,6 +69,7 @@ export async function GET(
     return NextResponse.json({
       data: {
         ...payroll,
+        staff: staffData,
         details: details || [],
         earnings,
         deductions,

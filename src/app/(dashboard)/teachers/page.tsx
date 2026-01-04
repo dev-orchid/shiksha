@@ -18,6 +18,7 @@ import {
   Mail,
   GraduationCap,
 } from 'lucide-react'
+import { getEmployeeTypeLabel } from '@/lib/constants/employee-types'
 
 interface Teacher {
   id: string
@@ -344,12 +345,12 @@ export default function TeachersPage() {
                           variant={
                             teacher.employee_type === 'teaching'
                               ? 'info'
-                              : teacher.employee_type === 'admin'
+                              : teacher.employee_type === 'administrative'
                               ? 'warning'
                               : 'default'
                           }
                         >
-                          {teacher.employee_type}
+                          {getEmployeeTypeLabel(teacher.employee_type)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

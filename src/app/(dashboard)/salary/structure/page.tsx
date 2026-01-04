@@ -18,6 +18,7 @@ import {
   X,
   Loader2,
 } from 'lucide-react'
+import { EMPLOYEE_TYPE_OPTIONS_WITH_ALL, getEmployeeTypeLabel, EmployeeType } from '@/lib/constants/employee-types'
 
 interface SalaryComponent {
   id: string
@@ -45,13 +46,6 @@ interface SalaryStructure {
   is_active: boolean
 }
 
-const employeeTypes = [
-  { value: '', label: 'All Employee Types' },
-  { value: 'teaching', label: 'Teaching Staff' },
-  { value: 'non_teaching', label: 'Non-Teaching Staff' },
-  { value: 'administrative', label: 'Administrative Staff' },
-  { value: 'support', label: 'Support Staff' },
-]
 
 export default function SalaryStructurePage() {
   const { profile } = useSession()
@@ -63,20 +57,24 @@ export default function SalaryStructurePage() {
   const [saving, setSaving] = useState(false)
 
   const [componentForm, setComponentForm] = useState({
+    id: '',
     name: '',
     component_type: 'earning',
     is_percentage: false,
     is_taxable: false,
     default_value: '',
   })
+  const [editingComponent, setEditingComponent] = useState(false)
   const [creatingDefaults, setCreatingDefaults] = useState(false)
 
   const [structureForm, setStructureForm] = useState({
+    id: '',
     name: '',
     description: '',
     employee_type: '',
-    components: [] as Array<{ component_id: string; amount: string }>,
+    components: [] as Array<{ component_id: string; value: string }>,
   })
+  const [editingStructure, setEditingStructure] = useState(false)
 
   useEffect(() => {
     if (profile?.schoolId) {
@@ -114,23 +112,25 @@ export default function SalaryStructurePage() {
     setSaving(true)
 
     try {
+      const isEditing = editingComponent && componentForm.id
       const response = await fetch('/api/salary/components', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          school_id: profile.schoolId,
+          ...(isEditing ? { id: componentForm.id } : { school_id: profile.schoolId }),
           name: componentForm.name,
           component_type: componentForm.component_type,
           is_percentage: componentForm.is_percentage,
           is_taxable: componentForm.is_taxable,
-          default_value: componentForm.default_value ? parseFloat(componentForm.default_value) : undefined,
+          default_value: componentForm.default_value ? parseFloat(componentForm.default_value) : null,
         }),
       })
 
       if (response.ok) {
         fetchData()
         setShowComponentForm(false)
-        setComponentForm({ name: '', component_type: 'earning', is_percentage: false, is_taxable: false, default_value: '' })
+        setEditingComponent(false)
+        setComponentForm({ id: '', name: '', component_type: 'earning', is_percentage: false, is_taxable: false, default_value: '' })
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to save component')
@@ -142,31 +142,54 @@ export default function SalaryStructurePage() {
     }
   }
 
+  const handleEditComponent = (component: SalaryComponent) => {
+    setComponentForm({
+      id: component.id,
+      name: component.name,
+      component_type: component.component_type,
+      is_percentage: component.is_percentage,
+      is_taxable: component.is_taxable,
+      default_value: component.default_value ? String(component.default_value) : '',
+    })
+    setEditingComponent(true)
+    setShowComponentForm(true)
+  }
+
   const handleSaveStructure = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile?.schoolId) return
     setSaving(true)
 
     try {
+      // Map components with proper amount/percentage based on component type
+      const mappedComponents = structureForm.components.map((c) => {
+        const component = components.find(comp => comp.id === c.component_id)
+        const value = parseFloat(c.value) || 0
+        if (component?.is_percentage) {
+          return { component_id: c.component_id, percentage: value }
+        }
+        return { component_id: c.component_id, amount: value }
+      })
+
+      const isEditing = editingStructure && structureForm.id
       const response = await fetch('/api/salary/structures', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...(isEditing ? { id: structureForm.id } : {}),
           school_id: profile.schoolId,
           name: structureForm.name,
           description: structureForm.description,
           employee_type: structureForm.employee_type || null,
-          components: structureForm.components.map((c) => ({
-            component_id: c.component_id,
-            amount: parseFloat(c.amount),
-          })),
+          components: mappedComponents,
         }),
       })
 
       if (response.ok) {
         fetchData()
         setShowStructureForm(false)
-        setStructureForm({ name: '', description: '', employee_type: '', components: [] })
+        setEditingStructure(false)
+        setStructureForm({ id: '', name: '', description: '', employee_type: '', components: [] })
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to save structure')
@@ -176,6 +199,24 @@ export default function SalaryStructurePage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleEditStructure = (structure: SalaryStructure) => {
+    // Map structure components to form format
+    const formComponents = structure.components?.map(c => ({
+      component_id: c.componentId,
+      value: String(c.percentage || c.amount || 0),
+    })) || []
+
+    setStructureForm({
+      id: structure.id,
+      name: structure.name,
+      description: structure.description || '',
+      employee_type: structure.employee_type || '',
+      components: formComponents,
+    })
+    setEditingStructure(true)
+    setShowStructureForm(true)
   }
 
   const handleDeleteComponent = async (id: string) => {
@@ -221,14 +262,31 @@ export default function SalaryStructurePage() {
   const addComponentToStructure = () => {
     setStructureForm({
       ...structureForm,
-      components: [...structureForm.components, { component_id: '', amount: '' }],
+      components: [...structureForm.components, { component_id: '', value: '' }],
     })
   }
 
   const updateStructureComponent = (index: number, field: string, value: string) => {
     const updated = [...structureForm.components]
     updated[index] = { ...updated[index], [field]: value }
+
+    // Auto-populate default value when component is selected
+    if (field === 'component_id' && value) {
+      const component = components.find(c => c.id === value)
+      if (component?.default_value && !updated[index].value) {
+        updated[index].value = String(component.default_value)
+      }
+    }
+
     setStructureForm({ ...structureForm, components: updated })
+  }
+
+  const getComponentPlaceholder = (componentId: string) => {
+    const component = components.find(c => c.id === componentId)
+    if (component?.is_percentage) {
+      return '% of Basic'
+    }
+    return 'Amount (₹)'
   }
 
   const removeStructureComponent = (index: number) => {
@@ -335,13 +393,17 @@ export default function SalaryStructurePage() {
                   </div>
                   <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-4 w-4" />}>
-                      {saving ? 'Saving...' : 'Save'}
+                      {saving ? 'Saving...' : (editingComponent ? 'Update' : 'Save')}
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowComponentForm(false)}
+                      onClick={() => {
+                        setShowComponentForm(false)
+                        setEditingComponent(false)
+                        setComponentForm({ id: '', name: '', component_type: 'earning', is_percentage: false, is_taxable: false, default_value: '' })
+                      }}
                       icon={<X className="h-4 w-4" />}
                     >
                       Cancel
@@ -369,12 +431,22 @@ export default function SalaryStructurePage() {
                       {component.default_value ? ` • Default: ₹${component.default_value.toLocaleString('en-IN')}` : ''}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleDeleteComponent(component.id)}
-                    className="p-1 hover:bg-red-50 rounded"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleEditComponent(component)}
+                      className="p-1 hover:bg-blue-50 rounded"
+                      title="Edit"
+                    >
+                      <Edit className="h-4 w-4 text-blue-500" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteComponent(component.id)}
+                      className="p-1 hover:bg-red-50 rounded"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </button>
+                  </div>
                 </div>
               ))}
               {components.length === 0 && (
@@ -419,7 +491,7 @@ export default function SalaryStructurePage() {
                     label="Employee Type"
                     value={structureForm.employee_type}
                     onChange={(e) => setStructureForm({ ...structureForm, employee_type: e.target.value })}
-                    options={employeeTypes}
+                    options={EMPLOYEE_TYPE_OPTIONS_WITH_ALL}
                   />
 
                   <div className="space-y-2">
@@ -436,15 +508,18 @@ export default function SalaryStructurePage() {
                           onChange={(e) => updateStructureComponent(index, 'component_id', e.target.value)}
                           options={[
                             { value: '', label: 'Select Component' },
-                            ...components.map((c) => ({ value: c.id, label: c.name })),
+                            ...components.map((c) => ({
+                              value: c.id,
+                              label: `${c.name} (${c.is_percentage ? '%' : '₹'})`
+                            })),
                           ]}
                           className="flex-1"
                         />
                         <Input
                           type="number"
-                          value={comp.amount}
-                          onChange={(e) => updateStructureComponent(index, 'amount', e.target.value)}
-                          placeholder="Amount"
+                          value={comp.value}
+                          onChange={(e) => updateStructureComponent(index, 'value', e.target.value)}
+                          placeholder={getComponentPlaceholder(comp.component_id)}
                           className="w-32"
                         />
                         <button
@@ -460,13 +535,17 @@ export default function SalaryStructurePage() {
 
                   <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-4 w-4" />}>
-                      {saving ? 'Saving...' : 'Save'}
+                      {saving ? 'Saving...' : (editingStructure ? 'Update' : 'Save')}
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowStructureForm(false)}
+                      onClick={() => {
+                        setShowStructureForm(false)
+                        setEditingStructure(false)
+                        setStructureForm({ id: '', name: '', description: '', employee_type: '', components: [] })
+                      }}
                       icon={<X className="h-4 w-4" />}
                     >
                       Cancel
@@ -487,16 +566,22 @@ export default function SalaryStructurePage() {
                       <p className="font-medium">{structure.name}</p>
                       {structure.employee_type && (
                         <Badge variant="info">
-                          {structure.employee_type === 'teaching' ? 'Teaching' :
-                           structure.employee_type === 'non_teaching' ? 'Non-Teaching' :
-                           structure.employee_type === 'administrative' ? 'Administrative' :
-                           structure.employee_type === 'support' ? 'Support' : structure.employee_type}
+                          {getEmployeeTypeLabel(structure.employee_type)}
                         </Badge>
                       )}
                     </div>
-                    <Badge variant={structure.is_active ? 'success' : 'danger'}>
-                      {structure.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditStructure(structure)}
+                        className="p-1 hover:bg-blue-50 rounded"
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4 text-blue-500" />
+                      </button>
+                      <Badge variant={structure.is_active ? 'success' : 'danger'}>
+                        {structure.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
                   </div>
                   {structure.description && (
                     <p className="text-sm text-gray-500 mb-2">{structure.description}</p>
@@ -505,7 +590,7 @@ export default function SalaryStructurePage() {
                     <div className="text-sm text-gray-600">
                       {structure.components.map((c, i) => (
                         <span key={i}>
-                          {c.name}: ₹{(c.amount || 0).toLocaleString('en-IN')}
+                          {c.name}: {c.percentage ? `${c.percentage}%` : `₹${(c.amount || 0).toLocaleString('en-IN')}`}
                           {i < structure.components.length - 1 && ' • '}
                         </span>
                       ))}

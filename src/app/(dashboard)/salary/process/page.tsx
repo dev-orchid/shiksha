@@ -257,23 +257,118 @@ export default function ProcessPayrollPage() {
             <head>
               <title>Payslip - ${selectedPayslip?.first_name} ${selectedPayslip?.last_name || ''}</title>
               <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body {
+                  font-family: 'Segoe UI', Arial, sans-serif;
+                  padding: 40px;
+                  background: #fff;
+                  print-color-adjust: exact;
+                  -webkit-print-color-adjust: exact;
+                }
+
+                /* Main container */
                 .payslip { max-width: 800px; margin: 0 auto; }
-                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-                .header h1 { margin: 0; font-size: 24px; }
-                .header p { margin: 5px 0; color: #666; }
-                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-                .info-box { padding: 10px; background: #f5f5f5; border-radius: 4px; }
-                .info-box label { font-size: 12px; color: #666; display: block; }
-                .info-box span { font-weight: bold; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-                th { background: #f5f5f5; }
+
+                /* Header styles */
+                .header { text-align: center; border-bottom: 2px solid #1f2937; padding-bottom: 16px; margin-bottom: 24px; }
+                .header h1 { margin: 0 0 4px 0; font-size: 24px; font-weight: 700; color: #111827; }
+                .header p { margin: 0; color: #4b5563; font-size: 14px; }
+
+                /* Grid layouts */
+                .grid { display: grid; }
+                .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+                .grid-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+                .gap-4 { gap: 16px; }
+                .gap-6 { gap: 24px; }
+
+                /* Spacing */
+                .mb-2 { margin-bottom: 8px; }
+                .mb-6 { margin-bottom: 24px; }
+                .mt-1 { margin-top: 4px; }
+                .mt-8 { margin-top: 32px; }
+                .mr-4 { margin-right: 16px; }
+                .p-3 { padding: 12px; }
+                .p-4 { padding: 16px; }
+                .pt-4 { padding-top: 16px; }
+                .py-2 { padding-top: 8px; padding-bottom: 8px; }
+
+                /* Info boxes */
+                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+                .info-box { padding: 12px; background: #f9fafb !important; border-radius: 6px; }
+                .info-box label { font-size: 11px; color: #6b7280; display: block; margin-bottom: 2px; text-transform: uppercase; }
+                .info-box span { font-weight: 600; font-size: 14px; color: #111827; display: block; }
+                .bg-gray-50 { background: #f9fafb !important; }
+
+                /* Background colors - with !important for print */
+                .bg-blue-50 { background: #eff6ff !important; }
+                .bg-green-50 { background: #f0fdf4 !important; }
+                .bg-orange-50 { background: #fff7ed !important; }
+                .bg-red-50 { background: #fef2f2 !important; }
+
+                /* Text colors */
+                .text-gray-400 { color: #9ca3af; }
+                .text-gray-500 { color: #6b7280; }
+                .text-gray-600 { color: #4b5563; }
+                .text-gray-700 { color: #374151; }
+                .text-gray-900 { color: #111827; }
+                .text-blue-600 { color: #2563eb !important; }
+                .text-green-600 { color: #16a34a !important; }
+                .text-orange-600 { color: #ea580c !important; }
+                .text-red-600 { color: #dc2626 !important; }
+
+                /* Text sizes */
+                .text-xs { font-size: 12px; }
+                .text-sm { font-size: 14px; }
+                .text-2xl { font-size: 24px; }
+
+                /* Font weights */
+                .font-semibold { font-weight: 600; }
+                .font-bold { font-weight: 700; }
+
+                /* Text alignment */
+                .text-center { text-align: center; }
                 .text-right { text-align: right; }
-                .total-row { font-weight: bold; background: #f0f9ff; }
-                .net-salary { font-size: 18px; font-weight: bold; color: #059669; text-align: right; padding: 15px; background: #ecfdf5; border-radius: 4px; }
-                .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
-                @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+
+                /* Border radius */
+                .rounded { border-radius: 6px; }
+                .rounded-lg { border-radius: 8px; }
+
+                /* Borders */
+                .border-b { border-bottom: 1px solid #e5e7eb; }
+                .border-b-2 { border-bottom: 2px solid #1f2937; }
+                .border-t { border-top: 1px solid #e5e7eb; }
+                .border-gray-800 { border-color: #1f2937; }
+
+                /* Block display */
+                .block { display: block; }
+
+                /* Headings */
+                h3 { font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+
+                /* Table styles */
+                table { width: 100%; border-collapse: collapse; }
+                tbody tr { border-bottom: 1px solid #e5e7eb; }
+                td { padding: 8px 4px; font-size: 14px; }
+
+                /* Net salary section */
+                .net-salary {
+                  background: #f0fdf4 !important;
+                  padding: 16px;
+                  border-radius: 8px;
+                  text-align: right;
+                }
+                .net-salary span:first-child { color: #4b5563; margin-right: 16px; }
+                .net-salary span:last-child { font-size: 24px; font-weight: 700; color: #16a34a; }
+
+                /* Footer */
+                .footer { text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+                .footer p { font-size: 12px; color: #6b7280; margin: 4px 0; }
+
+                @media print {
+                  body { padding: 20px; }
+                  .payslip { border: none; padding: 0; }
+                  * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+                }
               </style>
             </head>
             <body>${printContent}</body>

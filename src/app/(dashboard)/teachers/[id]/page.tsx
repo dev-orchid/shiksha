@@ -27,6 +27,7 @@ import {
   Save,
   X,
 } from 'lucide-react'
+import { getEmployeeTypeLabel } from '@/lib/constants/employee-types'
 
 interface Teacher {
   id: string
@@ -74,6 +75,7 @@ interface SalaryStructure {
   id: string
   name: string
   description: string | null
+  employee_type: string | null
 }
 
 interface SalaryAssignment {
@@ -363,7 +365,7 @@ export default function TeacherDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Employee Type</p>
-                  <p className="font-medium capitalize">{teacher.employee_type}</p>
+                  <p className="font-medium">{getEmployeeTypeLabel(teacher.employee_type)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Employment Type</p>
@@ -588,7 +590,20 @@ export default function TeacherDetailPage() {
                     onChange={(e) => setSalaryForm({ ...salaryForm, salary_structure_id: e.target.value })}
                     options={[
                       { value: '', label: 'Select Structure (Optional)' },
-                      ...salaryStructures.map(s => ({ value: s.id, label: s.name })),
+                      ...salaryStructures
+                        .filter(s => !s.employee_type || s.employee_type === teacher?.employee_type)
+                        .sort((a, b) => {
+                          // Show matching employee_type structures first
+                          const aMatch = a.employee_type === teacher?.employee_type ? 0 : 1
+                          const bMatch = b.employee_type === teacher?.employee_type ? 0 : 1
+                          return aMatch - bMatch
+                        })
+                        .map(s => ({
+                          value: s.id,
+                          label: s.employee_type === teacher?.employee_type
+                            ? `${s.name} (Recommended)`
+                            : s.name
+                        })),
                     ]}
                   />
                   <div className="flex gap-2">
