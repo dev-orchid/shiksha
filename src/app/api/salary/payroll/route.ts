@@ -115,11 +115,6 @@ export async function GET(request: NextRequest) {
       staff: staffMap[p.staff_id] || null
     }))
 
-    if (payrollError) {
-      console.error('Payroll GET - Error:', payrollError)
-      return NextResponse.json({ error: payrollError.message }, { status: 500 })
-    }
-
     return NextResponse.json({
       data,
       pagination: {
