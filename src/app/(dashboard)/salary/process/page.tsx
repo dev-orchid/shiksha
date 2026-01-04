@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
@@ -19,6 +19,9 @@ import {
   Wand2,
   RefreshCw,
   X,
+  FileText,
+  Printer,
+  Download,
 } from 'lucide-react'
 
 interface StaffMember {
@@ -31,6 +34,21 @@ interface StaffMember {
   total_deductions: number
   net_salary: number
   status: 'pending' | 'processed' | 'paid'
+  working_days?: number
+  present_days?: number
+  leave_days?: number
+}
+
+interface PayrollComponent {
+  id: string
+  component_name: string
+  component_type: 'earning' | 'deduction'
+  amount: number
+}
+
+interface PayslipData extends StaffMember {
+  earnings: PayrollComponent[]
+  deductions: PayrollComponent[]
 }
 
 export default function ProcessPayrollPage() {
@@ -53,6 +71,9 @@ export default function ProcessPayrollPage() {
     generated: number
     skipped: Array<{ name: string; reason: string }>
   } | null>(null)
+  const [selectedPayslip, setSelectedPayslip] = useState<PayslipData | null>(null)
+  const [loadingPayslip, setLoadingPayslip] = useState(false)
+  const payslipRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (profile?.schoolId) {
@@ -64,11 +85,14 @@ export default function ProcessPayrollPage() {
     if (!profile?.schoolId) return
     setLoading(true)
     try {
-      const response = await fetch(
-        `/api/salary/payroll?school_id=${profile.schoolId}&month=${selectedMonth}&year=${selectedYear}`
-      )
+      const url = `/api/salary/payroll?school_id=${profile.schoolId}&month=${selectedMonth}&year=${selectedYear}`
+      console.log('Fetching payroll data from:', url)
+      const response = await fetch(url)
+      console.log('Payroll API status:', response.status, response.statusText)
+      const data = await response.json()
+      console.log('Payroll API response:', data)
+
       if (response.ok) {
-        const data = await response.json()
         // Map the data to match the expected format
         const mappedStaff = (data.data || []).map((record: any) => ({
           id: record.id,
@@ -80,13 +104,52 @@ export default function ProcessPayrollPage() {
           total_deductions: record.total_deductions || 0,
           net_salary: record.net_salary || 0,
           status: record.status || 'pending',
+          working_days: record.working_days || 26,
+          present_days: record.present_days || 26,
+          leave_days: record.leave_days || 0,
         }))
+        console.log('Mapped staff:', mappedStaff)
         setStaff(mappedStaff)
+      } else {
+        console.error('Payroll API error:', data)
       }
-    } catch {
-      console.error('Failed to fetch payroll data')
+    } catch (err) {
+      console.error('Failed to fetch payroll data:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPayslipDetails = async (member: StaffMember) => {
+    setLoadingPayslip(true)
+    try {
+      const response = await fetch(`/api/salary/payroll/${member.id}`)
+      const data = await response.json()
+
+      if (response.ok && data.data) {
+        setSelectedPayslip({
+          ...member,
+          earnings: data.data.earnings || [],
+          deductions: data.data.deductions || [],
+        })
+      } else {
+        // If no details found, show basic payslip
+        setSelectedPayslip({
+          ...member,
+          earnings: [{ id: '1', component_name: 'Basic Salary', component_type: 'earning', amount: member.gross_salary }],
+          deductions: [],
+        })
+      }
+    } catch (err) {
+      console.error('Failed to fetch payslip details:', err)
+      // Show basic payslip on error
+      setSelectedPayslip({
+        ...member,
+        earnings: [{ id: '1', component_name: 'Basic Salary', component_type: 'earning', amount: member.gross_salary }],
+        deductions: [],
+      })
+    } finally {
+      setLoadingPayslip(false)
     }
   }
 
@@ -141,8 +204,12 @@ export default function ProcessPayrollPage() {
   }
 
   const handleGeneratePayroll = async () => {
-    if (!profile?.schoolId) return
+    if (!profile?.schoolId) {
+      alert('No school ID found in profile')
+      return
+    }
 
+    console.log('Generating payroll with school_id:', profile.schoolId)
     setGenerating(true)
     setGenerateResult(null)
     try {
@@ -166,12 +233,55 @@ export default function ProcessPayrollPage() {
         })
         fetchPayrollData() // Refresh the list
       } else {
-        alert(data.error || 'Failed to generate payroll')
+        // Show detailed error with debug info
+        const errorMsg = data.error || 'Failed to generate payroll'
+        const debugInfo = data.debug ? `\n\nDebug Info:\n- School ID: ${data.debug.school_id}\n- Total Staff in DB: ${data.debug.totalStaffInDb}\n- Staff for School: ${data.debug.staffForSchool}` : ''
+        alert(errorMsg + debugInfo)
+        console.log('Generate Payroll Error:', data)
       }
     } catch {
       alert('Failed to generate payroll')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handlePrintPayslip = () => {
+    if (payslipRef.current) {
+      const printContent = payslipRef.current.innerHTML
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Payslip - ${selectedPayslip?.first_name} ${selectedPayslip?.last_name || ''}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                .payslip { max-width: 800px; margin: 0 auto; }
+                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+                .header h1 { margin: 0; font-size: 24px; }
+                .header p { margin: 5px 0; color: #666; }
+                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                .info-box { padding: 10px; background: #f5f5f5; border-radius: 4px; }
+                .info-box label { font-size: 12px; color: #666; display: block; }
+                .info-box span { font-weight: bold; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+                th { background: #f5f5f5; }
+                .text-right { text-align: right; }
+                .total-row { font-weight: bold; background: #f0f9ff; }
+                .net-salary { font-size: 18px; font-weight: bold; color: #059669; text-align: right; padding: 15px; background: #ecfdf5; border-radius: 4px; }
+                .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
+                @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+              </style>
+            </head>
+            <body>${printContent}</body>
+          </html>
+        `)
+        printWindow.document.close()
+        printWindow.print()
+      }
     }
   }
 
@@ -392,6 +502,9 @@ export default function ProcessPayrollPage() {
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                       Status
                     </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -446,6 +559,17 @@ export default function ProcessPayrollPage() {
                           {member.status}
                         </Badge>
                       </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => fetchPayslipDetails(member)}
+                          disabled={loadingPayslip}
+                          icon={loadingPayslip ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                        >
+                          Payslip
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -454,6 +578,151 @@ export default function ProcessPayrollPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payslip Modal */}
+      {selectedPayslip && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Payslip</h2>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintPayslip}
+                  icon={<Printer className="h-4 w-4" />}
+                >
+                  Print
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedPayslip(null)}
+                  icon={<X className="h-4 w-4" />}
+                />
+              </div>
+            </div>
+
+            {/* Payslip Content */}
+            <div ref={payslipRef} className="p-6">
+              <div className="payslip">
+                {/* Header */}
+                <div className="header text-center border-b-2 border-gray-800 pb-4 mb-6">
+                  <h1 className="text-2xl font-bold text-gray-900">{profile?.schoolName || 'School Name'}</h1>
+                  <p className="text-gray-600">Salary Slip for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}</p>
+                </div>
+
+                {/* Employee Info */}
+                <div className="info-grid grid grid-cols-2 gap-4 mb-6">
+                  <div className="info-box bg-gray-50 p-3 rounded">
+                    <label className="text-xs text-gray-500">Employee Name</label>
+                    <span className="block font-semibold">{selectedPayslip.first_name} {selectedPayslip.last_name || ''}</span>
+                  </div>
+                  <div className="info-box bg-gray-50 p-3 rounded">
+                    <label className="text-xs text-gray-500">Employee ID</label>
+                    <span className="block font-semibold">{selectedPayslip.employee_id}</span>
+                  </div>
+                  <div className="info-box bg-gray-50 p-3 rounded">
+                    <label className="text-xs text-gray-500">Designation</label>
+                    <span className="block font-semibold">{selectedPayslip.designation}</span>
+                  </div>
+                  <div className="info-box bg-gray-50 p-3 rounded">
+                    <label className="text-xs text-gray-500">Pay Period</label>
+                    <span className="block font-semibold">{months.find(m => m.value === selectedMonth)?.label} {selectedYear}</span>
+                  </div>
+                </div>
+
+                {/* Attendance Summary */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Attendance Summary</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-blue-50 p-3 rounded text-center">
+                      <p className="text-2xl font-bold text-blue-600">{selectedPayslip.working_days}</p>
+                      <p className="text-xs text-gray-600">Working Days</p>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded text-center">
+                      <p className="text-2xl font-bold text-green-600">{selectedPayslip.present_days}</p>
+                      <p className="text-xs text-gray-600">Days Present</p>
+                    </div>
+                    <div className="bg-orange-50 p-3 rounded text-center">
+                      <p className="text-2xl font-bold text-orange-600">{selectedPayslip.leave_days}</p>
+                      <p className="text-xs text-gray-600">Leave Days</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Earnings & Deductions */}
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  {/* Earnings */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Earnings</h3>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {selectedPayslip.earnings.length > 0 ? (
+                          selectedPayslip.earnings.map((earning, index) => (
+                            <tr key={earning.id || index} className="border-b">
+                              <td className="py-2">{earning.component_name}</td>
+                              <td className="py-2 text-right">₹{earning.amount.toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr className="border-b">
+                            <td className="py-2">Basic Salary</td>
+                            <td className="py-2 text-right">₹{selectedPayslip.gross_salary.toLocaleString('en-IN')}</td>
+                          </tr>
+                        )}
+                        <tr className="font-semibold bg-green-50">
+                          <td className="py-2">Total Earnings</td>
+                          <td className="py-2 text-right text-green-600">₹{selectedPayslip.gross_salary.toLocaleString('en-IN')}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Deductions */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Deductions</h3>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {selectedPayslip.deductions.length > 0 ? (
+                          selectedPayslip.deductions.map((deduction, index) => (
+                            <tr key={deduction.id || index} className="border-b">
+                              <td className="py-2">{deduction.component_name}</td>
+                              <td className="py-2 text-right">₹{deduction.amount.toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr className="border-b text-gray-400">
+                            <td className="py-2">No deductions</td>
+                            <td className="py-2 text-right">₹0</td>
+                          </tr>
+                        )}
+                        <tr className="font-semibold bg-red-50">
+                          <td className="py-2">Total Deductions</td>
+                          <td className="py-2 text-right text-red-600">₹{selectedPayslip.total_deductions.toLocaleString('en-IN')}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Net Salary */}
+                <div className="net-salary bg-green-50 p-4 rounded-lg text-right">
+                  <span className="text-gray-600 mr-4">Net Salary:</span>
+                  <span className="text-2xl font-bold text-green-600">₹{selectedPayslip.net_salary.toLocaleString('en-IN')}</span>
+                </div>
+
+                {/* Footer */}
+                <div className="footer text-center mt-8 pt-4 border-t text-xs text-gray-500">
+                  <p>This is a computer-generated payslip and does not require a signature.</p>
+                  <p className="mt-1">Generated on {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

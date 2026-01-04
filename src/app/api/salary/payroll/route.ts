@@ -52,22 +52,14 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const schoolId = searchParams.get('school_id')
 
+    console.log('Payroll GET - Params:', { schoolId, month, year, staffId, status })
+
     const offset = (page - 1) * limit
 
+    // First try a simple query without joins
     let query = supabase
       .from('salary_payroll')
-      .select(`
-        *,
-        staff (
-          id,
-          first_name,
-          last_name,
-          employee_id,
-          designation,
-          department_id,
-          departments (id, name)
-        )
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
 
     if (schoolId) {
       query = query.eq('school_id', schoolId)
@@ -89,13 +81,43 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status)
     }
 
-    const { data, error, count } = await query
+    const { data: payrollData, error: payrollError, count } = await query
       .order('year', { ascending: false })
       .order('month', { ascending: false })
       .range(offset, offset + limit - 1)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    console.log('Payroll GET - Result:', { count, dataLength: payrollData?.length, error: payrollError })
+
+    if (payrollError) {
+      console.error('Payroll GET - Error:', payrollError)
+      return NextResponse.json({ error: payrollError.message }, { status: 500 })
+    }
+
+    // Now get staff details separately
+    const staffIds = [...new Set(payrollData?.map(p => p.staff_id) || [])]
+    let staffMap: Record<string, any> = {}
+
+    if (staffIds.length > 0) {
+      const { data: staffData } = await supabase
+        .from('staff')
+        .select('id, first_name, last_name, employee_id, designation, department_id')
+        .in('id', staffIds)
+
+      staffMap = (staffData || []).reduce((acc, s) => {
+        acc[s.id] = s
+        return acc
+      }, {} as Record<string, any>)
+    }
+
+    // Combine payroll with staff data
+    const data = payrollData?.map(p => ({
+      ...p,
+      staff: staffMap[p.staff_id] || null
+    }))
+
+    if (payrollError) {
+      console.error('Payroll GET - Error:', payrollError)
+      return NextResponse.json({ error: payrollError.message }, { status: 500 })
     }
 
     return NextResponse.json({

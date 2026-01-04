@@ -20,8 +20,18 @@ export async function POST(request: NextRequest) {
     const validatedData = generateSchema.parse(body)
     const { school_id, month, year, working_days, staff_ids, academic_year_id } = validatedData
 
-    // First, get all active staff for the school
-    let staffQuery = supabase
+    console.log('Generate Payroll - Request:', { school_id, month, year })
+
+    // First, get ALL staff for debugging
+    const { data: allStaffDebug, error: debugError } = await supabase
+      .from('staff')
+      .select('id, school_id, status, first_name')
+
+    console.log('All staff in DB:', allStaffDebug)
+    console.log('Debug error:', debugError)
+
+    // Get staff for this school - simple query with just eq
+    const { data: staffList, error: staffError } = await supabase
       .from('staff')
       .select(`
         id,
@@ -30,38 +40,40 @@ export async function POST(request: NextRequest) {
         last_name,
         designation,
         department_id,
-        status
+        status,
+        school_id
       `)
       .eq('school_id', school_id)
-      .in('status', ['active', 'Active'])
 
-    if (staff_ids && staff_ids.length > 0) {
-      staffQuery = staffQuery.in('id', staff_ids)
-    }
-
-    const { data: staffList, error: staffError } = await staffQuery
+    console.log('Staff for school:', staffList)
+    console.log('Staff error:', staffError)
 
     if (staffError) {
       console.error('Error fetching staff:', staffError)
       return NextResponse.json({ error: staffError.message }, { status: 500 })
     }
 
-    if (!staffList || staffList.length === 0) {
-      // Debug: Check if any staff exist for this school
-      const { data: allStaff } = await supabase
-        .from('staff')
-        .select('id, school_id, status')
-        .limit(10)
-      console.log('Debug - School ID:', school_id)
-      console.log('Debug - All staff in DB:', allStaff)
+    // Filter active staff in code instead of query
+    const activeStaff = (staffList || []).filter(s =>
+      s.status === 'active' || s.status === 'Active' || !s.status
+    )
+
+    console.log('Active staff count:', activeStaff.length)
+
+    if (activeStaff.length === 0) {
       return NextResponse.json({
         error: 'No active staff found',
-        debug: { school_id, staffCount: allStaff?.length || 0 }
+        debug: {
+          school_id,
+          totalStaffInDb: allStaffDebug?.length || 0,
+          staffForSchool: staffList?.length || 0,
+          staffSchoolIds: allStaffDebug?.map(s => s.school_id)
+        }
       }, { status: 400 })
     }
 
     // Now get salary assignments for these staff
-    const staffIds = staffList.map(s => s.id)
+    const staffIds = activeStaff.map(s => s.id)
     const { data: assignments } = await supabase
       .from('staff_salary_assignments')
       .select(`
@@ -92,7 +104,7 @@ export async function POST(request: NextRequest) {
       .eq('is_current', true)
 
     // Merge assignments with staff
-    const staffWithAssignments = staffList.map(staff => ({
+    const staffWithAssignments = activeStaff.map(staff => ({
       ...staff,
       staff_salary_assignments: assignments?.filter(a => a.staff_id === staff.id) || []
     }))
@@ -108,7 +120,8 @@ export async function POST(request: NextRequest) {
     const existingStaffIds = new Set(existingPayroll?.map(p => p.staff_id) || [])
 
     // Calculate payroll for each staff member
-    const payrollRecords = []
+    const payrollRecords: any[] = []
+    const payrollComponentDetails: Map<string, any[]> = new Map() // staff_id -> components
     const skippedStaff = []
 
     for (const staff of staffWithAssignments) {
@@ -139,6 +152,17 @@ export async function POST(request: NextRequest) {
       let totalEarnings = basicSalary
       let totalDeductions = 0
 
+      // Track component details for this staff
+      const componentDetails: any[] = []
+
+      // Add Basic Salary as a component
+      componentDetails.push({
+        salary_component_id: null,
+        component_name: 'Basic Salary',
+        component_type: 'earning',
+        amount: Math.round(basicSalary * 100) / 100,
+      })
+
       // Calculate earnings and deductions from structure components
       const structure = currentAssignment.salary_structures
       if (structure?.salary_structure_details) {
@@ -158,6 +182,18 @@ export async function POST(request: NextRequest) {
             amount = parseFloat(component.default_value)
           }
 
+          // Round to 2 decimal places
+          amount = Math.round(amount * 100) / 100
+
+          if (amount > 0) {
+            componentDetails.push({
+              salary_component_id: component.id,
+              component_name: component.name,
+              component_type: component.component_type,
+              amount: amount,
+            })
+          }
+
           if (component.component_type === 'earning') {
             totalEarnings += amount
           } else if (component.component_type === 'deduction') {
@@ -171,7 +207,6 @@ export async function POST(request: NextRequest) {
 
       payrollRecords.push({
         school_id,
-        academic_year_id,
         staff_id: staff.id,
         month,
         year,
@@ -183,6 +218,9 @@ export async function POST(request: NextRequest) {
         net_salary: Math.round(netSalary * 100) / 100,
         status: 'pending',
       })
+
+      // Store component details for this staff
+      payrollComponentDetails.set(staff.id, componentDetails)
     }
 
     if (payrollRecords.length === 0) {
@@ -202,6 +240,35 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('Error inserting payroll:', insertError)
       return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+
+    // Insert payroll component details
+    if (insertedPayroll && insertedPayroll.length > 0) {
+      const allComponentDetails: any[] = []
+
+      for (const payroll of insertedPayroll) {
+        const components = payrollComponentDetails.get(payroll.staff_id) || []
+        for (const comp of components) {
+          allComponentDetails.push({
+            payroll_id: payroll.id,
+            salary_component_id: comp.salary_component_id,
+            component_name: comp.component_name,
+            component_type: comp.component_type,
+            amount: comp.amount,
+          })
+        }
+      }
+
+      if (allComponentDetails.length > 0) {
+        const { error: detailsError } = await supabase
+          .from('salary_payroll_details')
+          .insert(allComponentDetails)
+
+        if (detailsError) {
+          console.error('Error inserting payroll details:', detailsError)
+          // Don't fail the whole operation, just log the error
+        }
+      }
     }
 
     return NextResponse.json({
