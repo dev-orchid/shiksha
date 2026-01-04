@@ -6,48 +6,79 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
+import { useSession } from '@/components/providers/SessionProvider'
 import {
   ArrowLeft,
   Search,
   Download,
   Eye,
   IndianRupee,
+  Loader2,
 } from 'lucide-react'
 
 interface StaffSalary {
   id: string
-  employee_id: string
-  first_name: string
-  last_name: string | null
+  staffId: string
+  employeeId: string
+  name: string
   designation: string
-  department?: { name: string }
-  basic_salary: number
-  total_earnings: number
-  total_deductions: number
-  net_salary: number
+  department: string
+  departmentId: string
+  basicSalary: number
+  grossSalary: number
+  deductions: number
+  netSalary: number
   status: string
 }
 
+interface Department {
+  id: string
+  name: string
+}
+
 export default function AllSalariesPage() {
+  const { profile } = useSession()
   const [salaries, setSalaries] = useState<StaffSalary[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('')
+  const [summary, setSummary] = useState({ totalStaff: 0, totalMonthlySalary: 0, averageSalary: 0 })
+
+  const currentMonth = new Date().getMonth() + 1
+  const currentYear = new Date().getFullYear()
 
   useEffect(() => {
-    fetchSalaries()
-  }, [departmentFilter])
+    if (profile?.schoolId) {
+      fetchSalaries()
+      fetchDepartments()
+    }
+  }, [profile?.schoolId, departmentFilter])
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch('/api/departments')
+      if (response.ok) {
+        const data = await response.json()
+        setDepartments(data.data || [])
+      }
+    } catch {
+      console.error('Failed to fetch departments')
+    }
+  }
 
   const fetchSalaries = async () => {
+    if (!profile?.schoolId) return
     setLoading(true)
     try {
-      let url = '/api/salary/staff-salaries'
-      if (departmentFilter) url += `?department_id=${departmentFilter}`
+      let url = `/api/salary/staff-salaries?school_id=${profile.schoolId}&month=${currentMonth}&year=${currentYear}`
+      if (departmentFilter) url += `&department_id=${departmentFilter}`
 
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setSalaries(data.data || [])
+        setSummary(data.summary || { totalStaff: 0, totalMonthlySalary: 0, averageSalary: 0 })
       }
     } catch {
       console.error('Failed to fetch salaries')
@@ -60,29 +91,41 @@ export default function AllSalariesPage() {
     if (!searchQuery) return true
     const searchLower = searchQuery.toLowerCase()
     return (
-      s.first_name.toLowerCase().includes(searchLower) ||
-      s.last_name?.toLowerCase().includes(searchLower) ||
-      s.employee_id.toLowerCase().includes(searchLower)
+      s.name.toLowerCase().includes(searchLower) ||
+      s.employeeId?.toLowerCase().includes(searchLower) ||
+      s.designation?.toLowerCase().includes(searchLower)
     )
   })
 
-  const totalSalary = filteredSalaries.reduce((sum, s) => sum + s.net_salary, 0)
+  const exportSalaries = () => {
+    const headers = ['Employee ID', 'Name', 'Designation', 'Department', 'Basic', 'Gross', 'Deductions', 'Net Salary', 'Status']
+    const rows = filteredSalaries.map(s => [
+      s.employeeId,
+      s.name,
+      s.designation,
+      s.department,
+      s.basicSalary,
+      s.grossSalary,
+      s.deductions,
+      s.netSalary,
+      s.status
+    ])
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `staff_salaries_${currentMonth}_${currentYear}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
-  const exportSalaries = async () => {
-    try {
-      const response = await fetch('/api/salary/staff-salaries/export')
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'staff_salaries.csv'
-        a.click()
-        window.URL.revokeObjectURL(url)
-      }
-    } catch {
-      console.error('Failed to export')
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount)
   }
 
   return (
@@ -110,14 +153,14 @@ export default function AllSalariesPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Total Staff</p>
-            <p className="text-2xl font-bold text-gray-900">{filteredSalaries.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{summary.totalStaff}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Total Monthly Salary</p>
             <p className="text-2xl font-bold text-green-600">
-              ₹{totalSalary.toLocaleString('en-IN')}
+              {formatCurrency(summary.totalMonthlySalary)}
             </p>
           </CardContent>
         </Card>
@@ -125,7 +168,7 @@ export default function AllSalariesPage() {
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">Average Salary</p>
             <p className="text-2xl font-bold text-blue-600">
-              ₹{filteredSalaries.length > 0 ? Math.round(totalSalary / filteredSalaries.length).toLocaleString('en-IN') : 0}
+              {formatCurrency(summary.averageSalary)}
             </p>
           </CardContent>
         </Card>
@@ -152,10 +195,7 @@ export default function AllSalariesPage() {
               onChange={(e) => setDepartmentFilter(e.target.value)}
               options={[
                 { value: '', label: 'All Departments' },
-                { value: 'science', label: 'Science' },
-                { value: 'math', label: 'Mathematics' },
-                { value: 'languages', label: 'Languages' },
-                { value: 'admin', label: 'Admin' },
+                ...departments.map(d => ({ value: d.id, label: d.name })),
               ]}
               className="w-48"
             />
@@ -174,12 +214,15 @@ export default function AllSalariesPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : filteredSalaries.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <IndianRupee className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>No salary records found</p>
+              <Link href="/salary/process" className="text-primary hover:underline mt-2 inline-block">
+                Process payroll to generate salary records
+              </Link>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -199,7 +242,7 @@ export default function AllSalariesPage() {
                       Basic
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      Earnings
+                      Gross
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       Deductions
@@ -208,7 +251,7 @@ export default function AllSalariesPage() {
                       Net Salary
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      Actions
+                      Status
                     </th>
                   </tr>
                 </thead>
@@ -219,14 +262,14 @@ export default function AllSalariesPage() {
                         <div className="flex items-center">
                           <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
                             <span className="text-sm font-medium text-green-700">
-                              {salary.first_name.charAt(0)}
+                              {salary.name.charAt(0)}
                             </span>
                           </div>
                           <div className="ml-3">
                             <p className="text-sm font-medium text-gray-900">
-                              {salary.first_name} {salary.last_name || ''}
+                              {salary.name}
                             </p>
-                            <p className="text-xs text-gray-500">{salary.employee_id}</p>
+                            <p className="text-xs text-gray-500">{salary.employeeId}</p>
                           </div>
                         </div>
                       </td>
@@ -234,26 +277,24 @@ export default function AllSalariesPage() {
                         {salary.designation}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant="info">{salary.department?.name || '-'}</Badge>
+                        <Badge variant="info">{salary.department || '-'}</Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        ₹{salary.basic_salary.toLocaleString('en-IN')}
+                        {formatCurrency(salary.basicSalary)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600">
-                        +₹{salary.total_earnings.toLocaleString('en-IN')}
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        {formatCurrency(salary.grossSalary)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-red-600">
-                        -₹{salary.total_deductions.toLocaleString('en-IN')}
+                        -{formatCurrency(salary.deductions)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
-                        ₹{salary.net_salary.toLocaleString('en-IN')}
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-green-600">
+                        {formatCurrency(salary.netSalary)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <Link href={`/teachers/${salary.id}`}>
-                          <button className="p-1 hover:bg-gray-100 rounded">
-                            <Eye className="h-4 w-4 text-gray-500" />
-                          </button>
-                        </Link>
+                        <Badge variant={salary.status === 'paid' ? 'success' : salary.status === 'processed' ? 'info' : 'warning'}>
+                          {salary.status}
+                        </Badge>
                       </td>
                     </tr>
                   ))}

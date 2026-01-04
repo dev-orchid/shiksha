@@ -48,12 +48,12 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    label: 'Teachers',
+    label: 'Staff',
     icon: <GraduationCap className="h-5 w-5" />,
     permission: PERMISSIONS.TEACHERS_VIEW,
     children: [
-      { label: 'All Teachers', href: '/teachers' },
-      { label: 'Add Teacher', href: '/teachers/new', permission: PERMISSIONS.TEACHERS_CREATE },
+      { label: 'All Staff', href: '/teachers' },
+      { label: 'Add Staff', href: '/teachers/new', permission: PERMISSIONS.TEACHERS_CREATE },
       { label: 'Assignments', href: '/teachers/assignments' },
     ],
   },

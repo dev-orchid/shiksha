@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Select'
 import { Badge } from '@/components/ui/Badge'
+import { useSession } from '@/components/providers/SessionProvider'
 import {
   ArrowLeft,
   IndianRupee,
@@ -14,6 +16,9 @@ import {
   AlertCircle,
   Play,
   Loader2,
+  Wand2,
+  RefreshCw,
+  X,
 } from 'lucide-react'
 
 interface StaffMember {
@@ -23,32 +28,60 @@ interface StaffMember {
   last_name: string | null
   designation: string
   gross_salary: number
-  deductions: number
+  total_deductions: number
   net_salary: number
   status: 'pending' | 'processed' | 'paid'
 }
 
 export default function ProcessPayrollPage() {
+  const { profile } = useSession()
+  const searchParams = useSearchParams()
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [generating, setGenerating] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const monthParam = searchParams.get('month')
+    return monthParam ? parseInt(monthParam) : new Date().getMonth() + 1
+  })
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const yearParam = searchParams.get('year')
+    return yearParam ? parseInt(yearParam) : new Date().getFullYear()
+  })
   const [selectedStaff, setSelectedStaff] = useState<string[]>([])
+  const [generateResult, setGenerateResult] = useState<{
+    generated: number
+    skipped: Array<{ name: string; reason: string }>
+  } | null>(null)
 
   useEffect(() => {
-    fetchPayrollData()
-  }, [selectedMonth, selectedYear])
+    if (profile?.schoolId) {
+      fetchPayrollData()
+    }
+  }, [selectedMonth, selectedYear, profile?.schoolId])
 
   const fetchPayrollData = async () => {
+    if (!profile?.schoolId) return
     setLoading(true)
     try {
       const response = await fetch(
-        `/api/salary/payroll?month=${selectedMonth}&year=${selectedYear}`
+        `/api/salary/payroll?school_id=${profile.schoolId}&month=${selectedMonth}&year=${selectedYear}`
       )
       if (response.ok) {
         const data = await response.json()
-        setStaff(data.data || [])
+        // Map the data to match the expected format
+        const mappedStaff = (data.data || []).map((record: any) => ({
+          id: record.id,
+          employee_id: record.staff?.employee_id || '',
+          first_name: record.staff?.first_name || '',
+          last_name: record.staff?.last_name || null,
+          designation: record.staff?.designation || '',
+          gross_salary: record.gross_salary || 0,
+          total_deductions: record.total_deductions || 0,
+          net_salary: record.net_salary || 0,
+          status: record.status || 'pending',
+        }))
+        setStaff(mappedStaff)
       }
     } catch {
       console.error('Failed to fetch payroll data')
@@ -78,6 +111,7 @@ export default function ProcessPayrollPage() {
       alert('Please select staff members to process payroll')
       return
     }
+    if (!profile?.schoolId) return
 
     setProcessing(true)
     try {
@@ -85,9 +119,9 @@ export default function ProcessPayrollPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          staff_ids: selectedStaff,
-          month: selectedMonth,
-          year: selectedYear,
+          school_id: profile.schoolId,
+          payroll_ids: selectedStaff,
+          action: 'process',
         }),
       })
 
@@ -103,6 +137,41 @@ export default function ProcessPayrollPage() {
       alert('Failed to process payroll')
     } finally {
       setProcessing(false)
+    }
+  }
+
+  const handleGeneratePayroll = async () => {
+    if (!profile?.schoolId) return
+
+    setGenerating(true)
+    setGenerateResult(null)
+    try {
+      const response = await fetch('/api/salary/payroll/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          school_id: profile.schoolId,
+          month: selectedMonth,
+          year: selectedYear,
+          working_days: 26, // Default working days
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setGenerateResult({
+          generated: data.generated,
+          skipped: data.skipped || [],
+        })
+        fetchPayrollData() // Refresh the list
+      } else {
+        alert(data.error || 'Failed to generate payroll')
+      }
+    } catch {
+      alert('Failed to generate payroll')
+    } finally {
+      setGenerating(false)
     }
   }
 
@@ -127,10 +196,10 @@ export default function ProcessPayrollPage() {
   }))
 
   const totalGross = staff.reduce((sum, s) => sum + s.gross_salary, 0)
-  const totalDeductions = staff.reduce((sum, s) => sum + s.deductions, 0)
+  const totalDeductions = staff.reduce((sum, s) => sum + s.total_deductions, 0)
   const totalNet = staff.reduce((sum, s) => sum + s.net_salary, 0)
   const pendingCount = staff.filter((s) => s.status === 'pending').length
-  const processedCount = staff.filter((s) => s.status === 'processed').length
+  const processedCount = staff.filter((s) => s.status === 'processed' || s.status === 'paid').length
 
   return (
     <div className="space-y-6">
@@ -147,14 +216,61 @@ export default function ProcessPayrollPage() {
             <p className="text-gray-500">Generate and process monthly payroll</p>
           </div>
         </div>
-        <Button
-          onClick={handleProcessPayroll}
-          disabled={processing || selectedStaff.length === 0}
-          icon={processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-        >
-          {processing ? 'Processing...' : `Process (${selectedStaff.length})`}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGeneratePayroll}
+            disabled={generating}
+            icon={generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+          >
+            {generating ? 'Generating...' : 'Generate Payroll'}
+          </Button>
+          <Button
+            onClick={handleProcessPayroll}
+            disabled={processing || selectedStaff.length === 0}
+            icon={processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          >
+            {processing ? 'Processing...' : `Process (${selectedStaff.length})`}
+          </Button>
+        </div>
       </div>
+
+      {/* Generate Result */}
+      {generateResult && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-green-700">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">
+                    Payroll generated for {generateResult.generated} staff members
+                  </span>
+                </div>
+                {generateResult.skipped.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600 mb-1">Skipped ({generateResult.skipped.length}):</p>
+                    <ul className="text-sm text-gray-500 list-disc list-inside">
+                      {generateResult.skipped.slice(0, 5).map((s, i) => (
+                        <li key={i}>{s.name}: {s.reason}</li>
+                      ))}
+                      {generateResult.skipped.length > 5 && (
+                        <li>...and {generateResult.skipped.length - 5} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setGenerateResult(null)}
+                icon={<X className="h-4 w-4" />}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Month/Year Selection */}
       <Card>
@@ -312,7 +428,7 @@ export default function ProcessPayrollPage() {
                         ₹{member.gross_salary.toLocaleString('en-IN')}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-red-600">
-                        ₹{member.deductions.toLocaleString('en-IN')}
+                        ₹{member.total_deductions.toLocaleString('en-IN')}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-green-600">
                         ₹{member.net_salary.toLocaleString('en-IN')}

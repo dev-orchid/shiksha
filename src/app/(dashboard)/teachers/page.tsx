@@ -190,7 +190,7 @@ export default function TeachersPage() {
             Export
           </Button>
           <Link href="/teachers/new">
-            <Button icon={<Plus className="h-4 w-4" />}>Add Teacher</Button>
+            <Button icon={<Plus className="h-4 w-4" />}>Add Staff</Button>
           </Link>
         </div>
       </div>

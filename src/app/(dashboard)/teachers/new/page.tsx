@@ -111,8 +111,8 @@ export default function NewTeacherPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add New Teacher</h1>
-          <p className="text-gray-500">Enter teacher details</p>
+          <h1 className="text-2xl font-bold text-gray-900">Add New Staff</h1>
+          <p className="text-gray-500">Enter staff member details</p>
         </div>
       </div>
 
@@ -384,7 +384,7 @@ export default function NewTeacherPage() {
             disabled={saving}
             icon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           >
-            {saving ? 'Saving...' : 'Add Teacher'}
+            {saving ? 'Saving...' : 'Add Staff'}
           </Button>
         </div>
       </form>

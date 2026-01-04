@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { useSession } from '@/components/providers/SessionProvider'
 import {
   ArrowLeft,
   Edit,
@@ -20,6 +23,9 @@ import {
   Building,
   CreditCard,
   BookOpen,
+  IndianRupee,
+  Save,
+  X,
 } from 'lucide-react'
 
 interface Teacher {
@@ -64,13 +70,40 @@ interface Teacher {
   }>
 }
 
+interface SalaryStructure {
+  id: string
+  name: string
+  description: string | null
+}
+
+interface SalaryAssignment {
+  id: string
+  staff_id: string
+  salary_structure_id: string | null
+  basic_salary: number
+  effective_from: string
+  is_current: boolean
+  salary_structures: SalaryStructure | null
+}
+
 export default function TeacherDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { profile } = useSession()
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // Salary assignment state
+  const [salaryAssignment, setSalaryAssignment] = useState<SalaryAssignment | null>(null)
+  const [salaryStructures, setSalaryStructures] = useState<SalaryStructure[]>([])
+  const [showSalaryForm, setShowSalaryForm] = useState(false)
+  const [salaryForm, setSalaryForm] = useState({
+    basic_salary: '',
+    salary_structure_id: '',
+  })
+  const [savingSalary, setSavingSalary] = useState(false)
 
   useEffect(() => {
     async function fetchTeacher() {
@@ -95,6 +128,77 @@ export default function TeacherDetailPage() {
       fetchTeacher()
     }
   }, [params.id])
+
+  // Fetch salary assignment and structures
+  useEffect(() => {
+    async function fetchSalaryData() {
+      if (!params.id || !profile?.schoolId) return
+
+      try {
+        // Fetch salary assignment
+        const assignmentRes = await fetch(`/api/salary/assignments?staff_id=${params.id}&current_only=true`)
+        if (assignmentRes.ok) {
+          const data = await assignmentRes.json()
+          if (data.data && data.data.length > 0) {
+            setSalaryAssignment(data.data[0])
+            setSalaryForm({
+              basic_salary: String(data.data[0].basic_salary),
+              salary_structure_id: data.data[0].salary_structure_id || '',
+            })
+          }
+        }
+
+        // Fetch salary structures
+        const structuresRes = await fetch(`/api/salary/structures?school_id=${profile.schoolId}`)
+        if (structuresRes.ok) {
+          const data = await structuresRes.json()
+          setSalaryStructures(data.data || [])
+        }
+      } catch {
+        console.error('Failed to fetch salary data')
+      }
+    }
+
+    fetchSalaryData()
+  }, [params.id, profile?.schoolId])
+
+  const handleSaveSalary = async () => {
+    if (!params.id || !salaryForm.basic_salary) return
+
+    setSavingSalary(true)
+    try {
+      const response = await fetch('/api/salary/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staff_id: params.id,
+          basic_salary: parseFloat(salaryForm.basic_salary),
+          salary_structure_id: salaryForm.salary_structure_id || null,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setSalaryAssignment(data.data)
+        setShowSalaryForm(false)
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to save salary')
+      }
+    } catch {
+      alert('Failed to save salary')
+    } finally {
+      setSavingSalary(false)
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this teacher?')) return
@@ -447,6 +551,100 @@ export default function TeacherDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Salary Information */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <IndianRupee className="h-5 w-5" />
+                  Salary
+                </CardTitle>
+                {!showSalaryForm && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSalaryForm(true)}
+                    icon={<Edit className="h-4 w-4" />}
+                  >
+                    {salaryAssignment ? 'Edit' : 'Assign'}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showSalaryForm ? (
+                <div className="space-y-3">
+                  <Input
+                    label="Basic Salary"
+                    type="number"
+                    value={salaryForm.basic_salary}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, basic_salary: e.target.value })}
+                    placeholder="e.g., 25000"
+                    required
+                  />
+                  <Select
+                    label="Salary Structure"
+                    value={salaryForm.salary_structure_id}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, salary_structure_id: e.target.value })}
+                    options={[
+                      { value: '', label: 'Select Structure (Optional)' },
+                      ...salaryStructures.map(s => ({ value: s.id, label: s.name })),
+                    ]}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveSalary}
+                      disabled={savingSalary || !salaryForm.basic_salary}
+                      icon={<Save className="h-4 w-4" />}
+                    >
+                      {savingSalary ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSalaryForm(false)}
+                      icon={<X className="h-4 w-4" />}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : salaryAssignment ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500">Basic Salary</p>
+                    <p className="text-xl font-bold text-green-600">
+                      {formatCurrency(salaryAssignment.basic_salary)}
+                    </p>
+                  </div>
+                  {salaryAssignment.salary_structures && (
+                    <div>
+                      <p className="text-sm text-gray-500">Structure</p>
+                      <Badge variant="info">{salaryAssignment.salary_structures.name}</Badge>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-gray-500">Effective From</p>
+                    <p className="text-sm">
+                      {new Date(salaryAssignment.effective_from).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <IndianRupee className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">No salary assigned</p>
+                  <p className="text-xs text-gray-400 mt-1">Click Assign to set up salary</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Quick Actions */}
           <Card>
             <CardHeader>
@@ -459,9 +657,9 @@ export default function TeacherDetailPage() {
                     View Attendance
                   </Button>
                 </Link>
-                <Link href={`/salary?staff=${teacher.id}`} className="block">
+                <Link href="/salary" className="block">
                   <Button variant="outline" className="w-full justify-start" icon={<CreditCard className="h-4 w-4" />}>
-                    View Salary
+                    Salary Management
                   </Button>
                 </Link>
                 <Link href="/teachers/assignments" className="block">
