@@ -47,9 +47,14 @@ export default function AddStudentPage() {
     email: '',
     father_name: '',
     father_phone: '',
+    father_email: '',
+    father_create_account: false,
     mother_name: '',
     mother_phone: '',
+    mother_email: '',
+    mother_create_account: false,
   })
+  const [parentCredentials, setParentCredentials] = useState<Array<{ relation: string; email: string; password: string }> | null>(null)
 
   useEffect(() => {
     fetchClasses()
@@ -88,8 +93,12 @@ export default function AddStudentPage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const { name, value, type } = e.target
+    const checked = (e.target as HTMLInputElement).checked
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }))
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,6 +214,21 @@ export default function AddStudentPage() {
         admission_date: formData.admission_date,
         previous_school: formData.previous_school || undefined,
         photo_url: photoUrl || undefined,
+        // Parent data
+        father: formData.father_name ? {
+          name: formData.father_name,
+          phone: formData.father_phone,
+          email: formData.father_email || undefined,
+          relation: 'father' as const,
+          create_account: formData.father_create_account && !!formData.father_email,
+        } : undefined,
+        mother: formData.mother_name ? {
+          name: formData.mother_name,
+          phone: formData.mother_phone,
+          email: formData.mother_email || undefined,
+          relation: 'mother' as const,
+          create_account: formData.mother_create_account && !!formData.mother_email,
+        } : undefined,
       }
 
       const response = await fetch('/api/students', {
@@ -214,7 +238,12 @@ export default function AddStudentPage() {
       })
 
       if (response.ok) {
-        router.push('/students')
+        const result = await response.json()
+        if (result.parentAccounts && result.parentAccounts.length > 0) {
+          setParentCredentials(result.parentAccounts)
+        } else {
+          router.push('/students')
+        }
       } else {
         const errorData = await response.json()
         setError(errorData.error || 'Failed to create student')
@@ -231,6 +260,74 @@ export default function AddStudentPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show credentials modal if parent accounts were created
+  if (parentCredentials) {
+    return (
+      <div className="space-y-6">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <CardTitle className="text-2xl">Student Created Successfully!</CardTitle>
+            <CardDescription>
+              Parent portal accounts have been created. Please save these credentials.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800 font-medium mb-2">
+                Important: Save these login credentials
+              </p>
+              <p className="text-xs text-yellow-700">
+                Share these credentials with the parents. They can use them to log in to the parent portal at <strong>/login</strong>
+              </p>
+            </div>
+
+            {parentCredentials.map((cred, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <h4 className="font-medium text-gray-900">{cred.relation}&apos;s Login</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Email</p>
+                    <p className="font-mono bg-white px-2 py-1 rounded border">{cred.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Password</p>
+                    <p className="font-mono bg-white px-2 py-1 rounded border">{cred.password}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  const text = parentCredentials.map(c =>
+                    `${c.relation} Login:\nEmail: ${c.email}\nPassword: ${c.password}`
+                  ).join('\n\n')
+                  navigator.clipboard.writeText(text)
+                }}
+              >
+                Copy Credentials
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => router.push('/students')}
+              >
+                Go to Students
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -430,40 +527,99 @@ export default function AddStudentPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Parent/Guardian Information</CardTitle>
-                <CardDescription>Details of parents or guardians</CardDescription>
+                <CardDescription>Details of parents or guardians. Add email to enable parent portal access.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Father's Name"
-                    name="father_name"
-                    value={formData.father_name}
-                    onChange={handleChange}
-                    placeholder="Enter father's name"
-                  />
-                  <Input
-                    label="Father's Phone"
-                    name="father_phone"
-                    value={formData.father_phone}
-                    onChange={handleChange}
-                    placeholder="Enter father's phone"
-                  />
+              <CardContent className="space-y-6">
+                {/* Father Information */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-700">Father&apos;s Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Father's Name"
+                      name="father_name"
+                      value={formData.father_name}
+                      onChange={handleChange}
+                      placeholder="Enter father's name"
+                    />
+                    <Input
+                      label="Father's Phone"
+                      name="father_phone"
+                      value={formData.father_phone}
+                      onChange={handleChange}
+                      placeholder="Enter father's phone"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <Input
+                      label="Father's Email"
+                      name="father_email"
+                      type="email"
+                      value={formData.father_email}
+                      onChange={handleChange}
+                      placeholder="Enter father's email for portal login"
+                    />
+                    <div className="flex items-center gap-2 pb-2">
+                      <input
+                        type="checkbox"
+                        id="father_create_account"
+                        name="father_create_account"
+                        checked={formData.father_create_account}
+                        onChange={handleChange}
+                        disabled={!formData.father_email}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="father_create_account" className="text-sm text-gray-700">
+                        Create parent portal login
+                      </label>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Mother's Name"
-                    name="mother_name"
-                    value={formData.mother_name}
-                    onChange={handleChange}
-                    placeholder="Enter mother's name"
-                  />
-                  <Input
-                    label="Mother's Phone"
-                    name="mother_phone"
-                    value={formData.mother_phone}
-                    onChange={handleChange}
-                    placeholder="Enter mother's phone"
-                  />
+
+                <div className="border-t border-gray-200" />
+
+                {/* Mother Information */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-700">Mother&apos;s Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Mother's Name"
+                      name="mother_name"
+                      value={formData.mother_name}
+                      onChange={handleChange}
+                      placeholder="Enter mother's name"
+                    />
+                    <Input
+                      label="Mother's Phone"
+                      name="mother_phone"
+                      value={formData.mother_phone}
+                      onChange={handleChange}
+                      placeholder="Enter mother's phone"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <Input
+                      label="Mother's Email"
+                      name="mother_email"
+                      type="email"
+                      value={formData.mother_email}
+                      onChange={handleChange}
+                      placeholder="Enter mother's email for portal login"
+                    />
+                    <div className="flex items-center gap-2 pb-2">
+                      <input
+                        type="checkbox"
+                        id="mother_create_account"
+                        name="mother_create_account"
+                        checked={formData.mother_create_account}
+                        onChange={handleChange}
+                        disabled={!formData.mother_email}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="mother_create_account" className="text-sm text-gray-700">
+                        Create parent portal login
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

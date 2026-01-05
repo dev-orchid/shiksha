@@ -33,7 +33,23 @@ function LoginForm() {
       if (error) {
         setLoginError(error.message || 'Invalid email or password')
       } else if (data.user) {
-        router.push(callbackUrl)
+        // Check user role to determine redirect
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        const userRole = (userData as { role: string } | null)?.role
+
+        // Redirect based on role
+        if (userRole === 'parent') {
+          router.push('/parent')
+        } else if (userRole === 'student') {
+          router.push('/student')
+        } else {
+          router.push(callbackUrl)
+        }
         router.refresh()
       }
     } catch {

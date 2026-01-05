@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
+// Parent schema for creating parent accounts
+const parentSchema = z.object({
+  name: z.string().min(1),
+  phone: z.string().min(10),
+  email: z.string().email().optional().or(z.literal('')),
+  relation: z.enum(['father', 'mother', 'guardian']),
+  create_account: z.boolean().optional().default(false),
+}).optional()
+
 const studentSchema = z.object({
   // Required fields
   school_id: z.string().uuid(),
@@ -21,7 +30,156 @@ const studentSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   previous_school: z.string().optional(),
   photo_url: z.string().url().optional(),
+  // Parent info
+  father: parentSchema,
+  mother: parentSchema,
 })
+
+// Helper to generate a random password
+function generatePassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  let password = ''
+  for (let i = 0; i < 10; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return password
+}
+
+// Helper to create parent account
+async function createParentAccount(
+  supabase: ReturnType<typeof createAdminClient>,
+  parentData: z.infer<typeof parentSchema>,
+  schoolId: string,
+  studentId: string
+): Promise<{ success: boolean; email?: string; password?: string; error?: string }> {
+  if (!parentData || !parentData.email || !parentData.create_account) {
+    // Just create parent record without login account
+    if (parentData && parentData.name) {
+      const nameParts = parentData.name.split(' ')
+      const firstName = nameParts[0]
+      const lastName = nameParts.slice(1).join(' ') || ''
+
+      const { data: parent, error: parentError } = await supabase
+        .from('parents')
+        .insert({
+          school_id: schoolId,
+          first_name: firstName,
+          last_name: lastName,
+          relation: parentData.relation,
+          phone: parentData.phone,
+          email: parentData.email || null,
+          is_primary_contact: parentData.relation === 'father',
+        })
+        .select('id')
+        .single()
+
+      if (parentError) {
+        console.error('Error creating parent record:', parentError)
+        return { success: false, error: parentError.message }
+      }
+
+      // Link parent to student
+      await supabase.from('student_parents').insert({
+        student_id: studentId,
+        parent_id: parent.id,
+        is_primary: parentData.relation === 'father',
+      })
+    }
+    return { success: true }
+  }
+
+  const password = generatePassword()
+  const nameParts = parentData.name.split(' ')
+  const firstName = nameParts[0]
+  const lastName = nameParts.slice(1).join(' ') || ''
+
+  try {
+    // Create auth user
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: parentData.email,
+      password: password,
+      email_confirm: true,
+      user_metadata: {
+        name: parentData.name,
+        school_id: schoolId,
+        role: 'parent',
+      },
+    })
+
+    if (authError) {
+      // If user already exists, try to find them
+      if (authError.message.includes('already registered')) {
+        const { data: existingUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', parentData.email)
+          .single()
+
+        if (existingUsers) {
+          // Link existing parent to this student
+          const { data: existingParent } = await supabase
+            .from('parents')
+            .select('id')
+            .eq('user_id', existingUsers.id)
+            .single()
+
+          if (existingParent) {
+            await supabase.from('student_parents').insert({
+              student_id: studentId,
+              parent_id: existingParent.id,
+              is_primary: parentData.relation === 'father',
+            })
+            return { success: true, email: parentData.email }
+          }
+        }
+        return { success: false, error: 'Parent email already registered' }
+      }
+      return { success: false, error: authError.message }
+    }
+
+    // Create user record
+    await supabase.from('users').insert({
+      id: authData.user.id,
+      school_id: schoolId,
+      email: parentData.email,
+      role: 'parent',
+      is_active: true,
+    })
+
+    // Create parent record
+    const { data: parent, error: parentError } = await supabase
+      .from('parents')
+      .insert({
+        school_id: schoolId,
+        user_id: authData.user.id,
+        first_name: firstName,
+        last_name: lastName,
+        relation: parentData.relation,
+        phone: parentData.phone,
+        email: parentData.email,
+        is_primary_contact: parentData.relation === 'father',
+      })
+      .select('id')
+      .single()
+
+    if (parentError) {
+      console.error('Error creating parent record:', parentError)
+      return { success: false, error: parentError.message }
+    }
+
+    // Link parent to student
+    await supabase.from('student_parents').insert({
+      student_id: studentId,
+      parent_id: parent.id,
+      is_primary: parentData.relation === 'father',
+    })
+
+    return { success: true, email: parentData.email, password }
+  } catch (error) {
+    console.error('Error creating parent account:', error)
+    return { success: false, error: 'Failed to create parent account' }
+  }
+}
 
 // GET - List students with pagination and filters
 export async function GET(request: NextRequest) {
@@ -136,9 +294,12 @@ export async function POST(request: NextRequest) {
 
     const validatedData = studentSchema.parse(body)
 
+    // Extract parent data before creating student
+    const { father, mother, ...studentData } = validatedData
+
     const { data, error } = await supabase
       .from('students')
-      .insert(validatedData)
+      .insert(studentData)
       .select()
       .single()
 
@@ -152,7 +313,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ data }, { status: 201 })
+    // Create parent accounts if provided
+    const parentAccounts: Array<{ relation: string; email?: string; password?: string }> = []
+
+    if (father && father.name) {
+      const result = await createParentAccount(supabase, father, studentData.school_id, data.id)
+      if (result.success && result.email && result.password) {
+        parentAccounts.push({ relation: 'Father', email: result.email, password: result.password })
+      }
+    }
+
+    if (mother && mother.name) {
+      const result = await createParentAccount(supabase, mother, studentData.school_id, data.id)
+      if (result.success && result.email && result.password) {
+        parentAccounts.push({ relation: 'Mother', email: result.email, password: result.password })
+      }
+    }
+
+    return NextResponse.json({
+      data,
+      parentAccounts: parentAccounts.length > 0 ? parentAccounts : undefined,
+    }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -99,6 +99,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const month = body.month || new Date().getMonth() + 1
+    const year = body.year || new Date().getFullYear()
+
+    // Check if invoice already exists for this student/month/year
+    // Use .limit(1) instead of .maybeSingle() to handle cases where duplicates already exist
+    const { data: existingInvoices } = await supabase
+      .from('fee_invoices')
+      .select('id, invoice_number, status')
+      .eq('student_id', body.student_id)
+      .eq('month', month)
+      .eq('year', year)
+      .limit(1)
+
+    if (existingInvoices && existingInvoices.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'Invoice already exists for this student for the selected month/year',
+          existing_invoice: existingInvoices[0],
+          skipped: true,
+        },
+        { status: 409 }
+      )
+    }
+
     // Get school_id and academic_year_id if not provided
     let schoolId = body.school_id
     let academicYearId = body.academic_year_id

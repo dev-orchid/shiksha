@@ -176,7 +176,9 @@ export default function InvoicesPage() {
         : students
 
       let successCount = 0
+      let skippedCount = 0
       let errorCount = 0
+      const skippedStudents: string[] = []
 
       for (const student of targetStudents) {
         const totalAmount = feeStructures.reduce((sum, fs) => sum + fs.amount, 0)
@@ -203,12 +205,31 @@ export default function InvoicesPage() {
 
         if (response.ok) {
           successCount++
+        } else if (response.status === 409) {
+          // Invoice already exists for this student/month/year
+          skippedCount++
+          skippedStudents.push(`${student.first_name} ${student.last_name || ''}`.trim())
         } else {
           errorCount++
         }
       }
 
-      alert(`Generated ${successCount} invoices. ${errorCount > 0 ? `${errorCount} failed.` : ''}`)
+      // Build result message
+      let message = ''
+      if (successCount > 0) {
+        message += `✓ Generated ${successCount} new invoice${successCount > 1 ? 's' : ''}.\n`
+      }
+      if (skippedCount > 0) {
+        message += `⚠ Skipped ${skippedCount} (already exist): ${skippedStudents.slice(0, 3).join(', ')}${skippedStudents.length > 3 ? ` and ${skippedStudents.length - 3} more` : ''}\n`
+      }
+      if (errorCount > 0) {
+        message += `✗ ${errorCount} failed to generate.`
+      }
+      if (successCount === 0 && skippedCount === 0 && errorCount === 0) {
+        message = 'No invoices to generate.'
+      }
+
+      alert(message.trim())
       setShowGenerateModal(false)
       fetchData()
     } catch (error) {
