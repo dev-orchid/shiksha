@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -15,56 +15,92 @@ import {
   Settings,
   AlertCircle,
 } from 'lucide-react'
+import { useSession } from '@/components/providers/SessionProvider'
 
 interface ConnectionStatus {
   isConnected: boolean
+  isInitializing?: boolean
   phoneNumber: string | null
   deviceName: string | null
   lastSeen: string | null
   batteryLevel: number | null
+  qrCode?: string | null
 }
 
 export default function WhatsAppConnectPage() {
+  const { profile } = useSession()
   const [status, setStatus] = useState<ConnectionStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
   const [qrCode, setQrCode] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    checkConnection()
-  }, [])
-
-  const checkConnection = async () => {
-    setLoading(true)
+  const checkConnection = useCallback(async () => {
     try {
-      const response = await fetch('/api/whatsapp/status')
+      const schoolId = profile?.schoolId
+      const params = schoolId ? `?school_id=${schoolId}` : ''
+      const response = await fetch(`/api/whatsapp/status${params}`)
       if (response.ok) {
         const data = await response.json()
         setStatus(data)
+        // If there's a QR code from the status, show it
+        if (data.qrCode && data.isInitializing) {
+          setQrCode(data.qrCode)
+          setConnecting(true)
+        }
       }
     } catch {
       console.error('Failed to check connection')
     } finally {
       setLoading(false)
     }
-  }
+  }, [profile?.schoolId])
+
+  useEffect(() => {
+    checkConnection()
+  }, [checkConnection])
 
   const startConnection = async () => {
     setConnecting(true)
     setQrCode(null)
+    setError(null)
 
     try {
-      const response = await fetch('/api/whatsapp/connect', { method: 'POST' })
+      const schoolId = profile?.schoolId
+      if (!schoolId) {
+        setError('No school selected. Please select a school first.')
+        setConnecting(false)
+        return
+      }
+
+      const response = await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ school_id: schoolId }),
+      })
+
+      const data = await response.json()
+
       if (response.ok) {
-        const data = await response.json()
         if (data.qrCode) {
           setQrCode(data.qrCode)
         }
+        if (data.isConnected) {
+          setStatus({ ...status, isConnected: true, phoneNumber: data.phoneNumber } as ConnectionStatus)
+          setConnecting(false)
+          return
+        }
+
         // Poll for connection status
+        const params = `?school_id=${schoolId}`
         const pollInterval = setInterval(async () => {
-          const statusRes = await fetch('/api/whatsapp/status')
+          const statusRes = await fetch(`/api/whatsapp/status${params}`)
           if (statusRes.ok) {
             const statusData = await statusRes.json()
+            // Update QR code if a new one is available
+            if (statusData.qrCode && statusData.isInitializing) {
+              setQrCode(statusData.qrCode)
+            }
             if (statusData.isConnected) {
               clearInterval(pollInterval)
               setQrCode(null)
@@ -80,14 +116,15 @@ export default function WhatsAppConnectPage() {
           if (!status?.isConnected) {
             setConnecting(false)
             setQrCode(null)
+            setError('Connection timeout. Please try again.')
           }
         }, 120000)
       } else {
-        alert('Failed to initiate connection')
+        setError(data.error || 'Failed to initiate connection')
         setConnecting(false)
       }
-    } catch {
-      alert('Failed to connect')
+    } catch (err) {
+      setError('Failed to connect. Please try again.')
       setConnecting(false)
     }
   }
@@ -96,15 +133,22 @@ export default function WhatsAppConnectPage() {
     if (!confirm('Are you sure you want to disconnect WhatsApp?')) return
 
     try {
-      const response = await fetch('/api/whatsapp/disconnect', { method: 'POST' })
+      const schoolId = profile?.schoolId
+      const response = await fetch('/api/whatsapp/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ school_id: schoolId }),
+      })
       if (response.ok) {
         setStatus(null)
+        setQrCode(null)
+        setConnecting(false)
         checkConnection()
       } else {
-        alert('Failed to disconnect')
+        setError('Failed to disconnect')
       }
     } catch {
-      alert('Failed to disconnect')
+      setError('Failed to disconnect')
     }
   }
 
@@ -122,6 +166,20 @@ export default function WhatsAppConnectPage() {
           <p className="text-gray-500">Connect your WhatsApp Business account</p>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <XCircle className="h-5 w-5 text-red-600" />
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-red-600 hover:text-red-800"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Connection Status */}

@@ -5,7 +5,7 @@ import { z } from 'zod'
 const templateSchema = z.object({
   school_id: z.string().uuid(),
   name: z.string().min(1),
-  category: z.enum(['fee_reminder', 'attendance', 'exam', 'general', 'event', 'circular']),
+  category: z.enum(['fee_reminder', 'attendance', 'exam', 'result', 'general', 'announcement']),
   content: z.string().min(1),
   variables: z.array(z.string()).optional(),
   is_active: z.boolean().default(true),

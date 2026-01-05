@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import {
   ArrowLeft,
   Plus,
@@ -16,17 +17,27 @@ import {
   Save,
   X,
 } from 'lucide-react'
+import { useSession } from '@/components/providers/SessionProvider'
 
 interface WhatsAppGroup {
   id: string
   name: string
+  group_type: string
   description: string | null
   member_count: number
   created_at: string
   is_active: boolean
 }
 
+const GROUP_TYPES = [
+  { value: 'class', label: 'Class Group' },
+  { value: 'parents', label: 'Parents Group' },
+  { value: 'teachers', label: 'Teachers Group' },
+  { value: 'custom', label: 'Custom Group' },
+]
+
 export default function WhatsAppGroupsPage() {
+  const { profile } = useSession()
   const [groups, setGroups] = useState<WhatsAppGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -34,16 +45,15 @@ export default function WhatsAppGroupsPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    group_type: 'custom',
   })
 
-  useEffect(() => {
-    fetchGroups()
-  }, [])
-
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/whatsapp/groups')
+      const schoolId = profile?.schoolId
+      const params = schoolId ? `?school_id=${schoolId}` : ''
+      const response = await fetch(`/api/whatsapp/groups${params}`)
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data || [])
@@ -53,7 +63,11 @@ export default function WhatsAppGroupsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [profile?.schoolId])
+
+  useEffect(() => {
+    fetchGroups()
+  }, [fetchGroups])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,13 +77,16 @@ export default function WhatsAppGroupsPage() {
       const response = await fetch('/api/whatsapp/groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          school_id: profile?.schoolId,
+        }),
       })
 
       if (response.ok) {
         fetchGroups()
         setShowForm(false)
-        setFormData({ name: '', description: '' })
+        setFormData({ name: '', description: '', group_type: 'custom' })
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to create group')
@@ -131,6 +148,12 @@ export default function WhatsAppGroupsPage() {
                 required
                 placeholder="e.g., Class 10 Parents"
               />
+              <Select
+                label="Group Type"
+                value={formData.group_type}
+                onChange={(e) => setFormData({ ...formData, group_type: e.target.value })}
+                options={GROUP_TYPES}
+              />
               <Input
                 label="Description"
                 value={formData.description}
@@ -173,30 +196,38 @@ export default function WhatsAppGroupsPage() {
           </div>
         ) : (
           groups.map((group) => (
-            <Card key={group.id}>
+            <Card key={group.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-green-600" />
+                <Link href={`/whatsapp/groups/${group.id}`} className="block">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-green-600" />
+                    </div>
+                    <Badge variant={group.is_active ? 'success' : 'danger'}>
+                      {group.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
-                  <Badge variant={group.is_active ? 'success' : 'danger'}>
-                    {group.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                <h3 className="font-semibold text-gray-900">{group.name}</h3>
-                {group.description && (
-                  <p className="text-sm text-gray-500 mt-1">{group.description}</p>
-                )}
-                <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    {group.member_count} members
-                  </span>
-                </div>
+                  <h3 className="font-semibold text-gray-900">{group.name}</h3>
+                  <p className="text-xs text-gray-400 capitalize">{group.group_type} group</p>
+                  {group.description && (
+                    <p className="text-sm text-gray-500 mt-1">{group.description}</p>
+                  )}
+                  <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      {group.member_count || 0} members
+                    </span>
+                  </div>
+                </Link>
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-                  <Link href={`/whatsapp/send?group=${group.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full" icon={<MessageSquare className="h-4 w-4" />}>
-                      Send Message
+                  <Link href={`/whatsapp/groups/${group.id}`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full" icon={<Users className="h-4 w-4" />}>
+                      Manage Members
+                    </Button>
+                  </Link>
+                  <Link href={`/whatsapp/send?group=${group.id}`}>
+                    <Button variant="outline" size="sm" icon={<MessageSquare className="h-4 w-4" />}>
+                      Send
                     </Button>
                   </Link>
                   <button

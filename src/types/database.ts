@@ -910,6 +910,117 @@ export type Database = {
           updated_at?: string
         }
       }
+      whatsapp_configs: {
+        Row: {
+          id: string
+          school_id: string | null
+          phone_number: string
+          session_data: string | null
+          is_connected: boolean
+          last_connected_at: string | null
+          qr_code: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          school_id?: string | null
+          phone_number: string
+          session_data?: string | null
+          is_connected?: boolean
+          last_connected_at?: string | null
+          qr_code?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string | null
+          phone_number?: string
+          session_data?: string | null
+          is_connected?: boolean
+          last_connected_at?: string | null
+          qr_code?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      whatsapp_groups: {
+        Row: {
+          id: string
+          school_id: string | null
+          group_id: string
+          name: string
+          group_type: WhatsAppGroupType
+          class_id: string | null
+          section_id: string | null
+          description: string | null
+          invite_link: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          school_id?: string | null
+          group_id: string
+          name: string
+          group_type: WhatsAppGroupType
+          class_id?: string | null
+          section_id?: string | null
+          description?: string | null
+          invite_link?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string | null
+          group_id?: string
+          name?: string
+          group_type?: WhatsAppGroupType
+          class_id?: string | null
+          section_id?: string | null
+          description?: string | null
+          invite_link?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      whatsapp_templates: {
+        Row: {
+          id: string
+          school_id: string | null
+          name: string
+          category: WhatsAppTemplateCategory
+          content: string
+          variables: string[] | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          school_id?: string | null
+          name: string
+          category: WhatsAppTemplateCategory
+          content: string
+          variables?: string[] | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string | null
+          name?: string
+          category?: WhatsAppTemplateCategory
+          content?: string
+          variables?: string[] | null
+          is_active?: boolean
+          created_at?: string
+        }
+      }
       whatsapp_messages: {
         Row: {
           id: string
@@ -957,6 +1068,41 @@ export type Database = {
           delivered_at?: string | null
           read_at?: string | null
           sent_by?: string | null
+          created_at?: string
+        }
+      }
+      whatsapp_broadcasts: {
+        Row: {
+          id: string
+          school_id: string | null
+          name: string
+          description: string | null
+          recipient_type: WhatsAppRecipientType | null
+          class_id: string | null
+          section_id: string | null
+          recipient_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          school_id?: string | null
+          name: string
+          description?: string | null
+          recipient_type?: WhatsAppRecipientType | null
+          class_id?: string | null
+          section_id?: string | null
+          recipient_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string | null
+          name?: string
+          description?: string | null
+          recipient_type?: WhatsAppRecipientType | null
+          class_id?: string | null
+          section_id?: string | null
+          recipient_count?: number
           created_at?: string
         }
       }
@@ -1019,6 +1165,9 @@ export type ExamStatus = 'scheduled' | 'ongoing' | 'completed' | 'cancelled'
 export type PayrollStatus = 'pending' | 'processed' | 'paid' | 'cancelled'
 export type MessageType = 'individual' | 'group' | 'broadcast'
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+export type WhatsAppGroupType = 'class' | 'parents' | 'teachers' | 'custom'
+export type WhatsAppTemplateCategory = 'fee_reminder' | 'attendance' | 'exam' | 'result' | 'general' | 'announcement'
+export type WhatsAppRecipientType = 'all_parents' | 'class_parents' | 'all_staff' | 'custom'
 export type NotificationType = 'fee_due' | 'attendance' | 'result' | 'announcement' | 'leave' | 'general'
 
 // Convenience types
@@ -1038,5 +1187,9 @@ export type FeePayment = Database['public']['Tables']['fee_payments']['Row']
 export type Exam = Database['public']['Tables']['exams']['Row']
 export type ExamResult = Database['public']['Tables']['exam_results']['Row']
 export type SalaryPayroll = Database['public']['Tables']['salary_payroll']['Row']
+export type WhatsAppConfig = Database['public']['Tables']['whatsapp_configs']['Row']
+export type WhatsAppGroup = Database['public']['Tables']['whatsapp_groups']['Row']
+export type WhatsAppTemplate = Database['public']['Tables']['whatsapp_templates']['Row']
 export type WhatsAppMessage = Database['public']['Tables']['whatsapp_messages']['Row']
+export type WhatsAppBroadcast = Database['public']['Tables']['whatsapp_broadcasts']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']

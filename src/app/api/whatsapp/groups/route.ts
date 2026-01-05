@@ -57,9 +57,15 @@ export async function POST(request: NextRequest) {
 
     const validatedData = groupSchema.parse(body)
 
+    // Generate a unique group_id (this is for internal tracking, not actual WhatsApp group)
+    const group_id = `grp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+
     const { data, error } = await supabase
       .from('whatsapp_groups')
-      .insert(validatedData)
+      .insert({
+        ...validatedData,
+        group_id,
+      })
       .select()
       .single()
 

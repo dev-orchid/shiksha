@@ -314,7 +314,7 @@ A: All updates are automatic and included in your subscription.
 
 - **Website:** [shiksha.orchidsw.com](https://shiksha.orchidsw.com)
 - **Email:** info@orchidsw.com
-- **Phone:** +91 XXXXXXXXXX
+- **Phone:** +91 9079003238
 
 **Schedule a Demo:** [Book Now](#)
 

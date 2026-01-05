@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -17,6 +17,7 @@ import {
   X,
   Copy,
 } from 'lucide-react'
+import { useSession } from '@/components/providers/SessionProvider'
 
 interface Template {
   id: string
@@ -28,7 +29,17 @@ interface Template {
   created_at: string
 }
 
+const CATEGORIES = [
+  { value: 'general', label: 'General' },
+  { value: 'fee_reminder', label: 'Fee Reminder' },
+  { value: 'attendance', label: 'Attendance' },
+  { value: 'exam', label: 'Exam Related' },
+  { value: 'result', label: 'Result' },
+  { value: 'announcement', label: 'Announcement' },
+]
+
 export default function WhatsAppTemplatesPage() {
+  const { profile } = useSession()
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -40,14 +51,12 @@ export default function WhatsAppTemplatesPage() {
     content: '',
   })
 
-  useEffect(() => {
-    fetchTemplates()
-  }, [])
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/whatsapp/templates')
+      const schoolId = profile?.schoolId
+      const params = schoolId ? `?school_id=${schoolId}` : ''
+      const response = await fetch(`/api/whatsapp/templates${params}`)
       if (response.ok) {
         const data = await response.json()
         setTemplates(data.data || [])
@@ -57,7 +66,11 @@ export default function WhatsAppTemplatesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [profile?.schoolId])
+
+  useEffect(() => {
+    fetchTemplates()
+  }, [fetchTemplates])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,7 +85,10 @@ export default function WhatsAppTemplatesPage() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          school_id: profile?.schoolId,
+        }),
       })
 
       if (response.ok) {
@@ -124,11 +140,18 @@ export default function WhatsAppTemplatesPage() {
   const getCategoryColor = (category: string) => {
     const colors: Record<string, 'info' | 'success' | 'warning' | 'danger'> = {
       general: 'info',
-      fee: 'success',
+      fee_reminder: 'success',
       attendance: 'warning',
       exam: 'danger',
+      result: 'success',
+      announcement: 'info',
     }
     return colors[category] || 'info'
+  }
+
+  const getCategoryLabel = (category: string) => {
+    const cat = CATEGORIES.find(c => c.value === category)
+    return cat?.label || category
   }
 
   return (
@@ -178,12 +201,7 @@ export default function WhatsAppTemplatesPage() {
                   label="Category"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  options={[
-                    { value: 'general', label: 'General' },
-                    { value: 'fee', label: 'Fee Related' },
-                    { value: 'attendance', label: 'Attendance' },
-                    { value: 'exam', label: 'Exam Related' },
-                  ]}
+                  options={CATEGORIES}
                 />
               </div>
               <div>
@@ -247,7 +265,7 @@ export default function WhatsAppTemplatesPage() {
                   <div>
                     <h3 className="font-semibold text-gray-900">{template.name}</h3>
                     <Badge variant={getCategoryColor(template.category)} className="mt-1">
-                      {template.category}
+                      {getCategoryLabel(template.category)}
                     </Badge>
                   </div>
                   <Badge variant={template.is_active ? 'success' : 'danger'}>
