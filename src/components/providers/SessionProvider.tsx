@@ -7,6 +7,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 interface UserProfile {
   id: string
   email: string
+  displayName: string
   role: string
   schoolId: string | null
   schoolName: string | null
@@ -66,10 +67,18 @@ export function SessionProvider({ children }: SessionProviderProps) {
         schoolName = (schoolData as { name: string } | null)?.name ?? null
       }
 
+      // Get display name from user metadata, fall back to email prefix
+      const displayName = authUser.user_metadata?.display_name
+        || authUser.user_metadata?.full_name
+        || authUser.user_metadata?.name
+        || authUser.email?.split('@')[0]
+        || 'User'
+
       if (userData) {
         setProfile({
           id: userData.id,
           email: userData.email,
+          displayName: displayName,
           role: userData.role,
           schoolId: schoolId,
           schoolName: schoolName,
@@ -79,6 +88,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
         setProfile({
           id: authUser.id,
           email: authUser.email || '',
+          displayName: displayName,
           role: authUser.user_metadata?.role || 'user',
           schoolId: schoolId,
           schoolName: schoolName,

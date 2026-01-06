@@ -39,6 +39,7 @@ async function getDashboardStats(schoolId: string) {
     todayAttendanceResult,
     totalStudentsForAttendance,
     recentActivityResult,
+    upcomingEventsResult,
   ] = await Promise.all([
     // Current students count
     supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'active'),
@@ -70,6 +71,13 @@ async function getDashboardStats(schoolId: string) {
         )
       )
     `).eq('fee_invoices.students.school_id', schoolId).order('created_at', { ascending: false }).limit(5),
+    // Upcoming events for this school
+    supabase.from('events').select(`
+      id,
+      title,
+      start_date,
+      event_types (id, name, color)
+    `).eq('school_id', schoolId).eq('is_active', true).gte('start_date', today).order('start_date', { ascending: true }).limit(6),
   ])
 
   // Calculate values
@@ -106,6 +114,7 @@ async function getDashboardStats(schoolId: string) {
     feeChange,
     attendancePercentage,
     recentActivity: recentActivityResult.data || [],
+    upcomingEvents: upcomingEventsResult.data || [],
   }
 }
 
@@ -143,6 +152,13 @@ export default async function DashboardPage() {
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Get display name from user metadata, fall back to email prefix
+  const displayName = user?.user_metadata?.display_name
+    || user?.user_metadata?.full_name
+    || user?.user_metadata?.name
+    || user?.email?.split('@')[0]
+    || 'User'
 
   const dashboardData = await getDashboardStats(authUser.schoolId)
 
@@ -182,7 +198,7 @@ export default async function DashboardPage() {
       {/* Welcome message */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {user?.email?.split('@')[0]}!
+          Welcome back, {displayName}!
         </h1>
         <p className="text-gray-500 mt-1">
           Here&apos;s what&apos;s happening at your school today.
@@ -302,31 +318,56 @@ export default async function DashboardPage() {
 
       {/* Upcoming Events */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Upcoming Events</CardTitle>
+          <a href="/events" className="text-sm text-primary hover:underline">
+            View all
+          </a>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { title: 'Parent-Teacher Meeting', date: 'Jan 15, 2025', type: 'Meeting' },
-              { title: 'Annual Sports Day', date: 'Jan 20, 2025', type: 'Event' },
-              { title: 'Unit Test 3', date: 'Jan 25, 2025', type: 'Exam' },
-            ].map((event, index) => (
-              <div
-                key={index}
-                className="p-4 rounded-lg border border-gray-200 hover:border-primary/50 transition-colors"
+          {dashboardData.upcomingEvents.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {dashboardData.upcomingEvents.map((event: any) => (
+                <a
+                  key={event.id}
+                  href={`/events/${event.id}/edit`}
+                  className="p-4 rounded-lg border border-gray-200 hover:border-primary/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <span
+                      className="text-xs font-medium px-2 py-0.5 rounded"
+                      style={{
+                        backgroundColor: event.event_types?.color || '#3b82f6',
+                        color: 'white',
+                      }}
+                    >
+                      {event.event_types?.name || 'Event'}
+                    </span>
+                  </div>
+                  <h4 className="font-medium text-gray-900">{event.title}</h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {new Date(event.start_date).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No upcoming events</p>
+              <a
+                href="/events/new"
+                className="text-sm text-primary hover:underline mt-2 inline-block"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-medium text-primary">
-                    {event.type}
-                  </span>
-                </div>
-                <h4 className="font-medium text-gray-900">{event.title}</h4>
-                <p className="text-sm text-gray-500 mt-1">{event.date}</p>
-              </div>
-            ))}
-          </div>
+                Create your first event
+              </a>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

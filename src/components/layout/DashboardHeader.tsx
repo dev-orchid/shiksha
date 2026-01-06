@@ -90,12 +90,12 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             >
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
-                  {profile?.email?.charAt(0).toUpperCase()}
+                  {profile?.displayName?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="hidden sm:block text-left">
                 <p className="text-sm font-medium text-gray-900">
-                  {profile?.email?.split('@')[0]}
+                  {profile?.displayName}
                 </p>
                 <p className="text-xs text-gray-500">{roleLabel}</p>
               </div>
@@ -111,8 +111,9 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-20 py-1">
                   <div className="px-4 py-3 border-b border-gray-200">
                     <p className="text-sm font-medium text-gray-900">
-                      {profile?.email}
+                      {profile?.displayName}
                     </p>
+                    <p className="text-xs text-gray-500">{profile?.email}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{roleLabel}</p>
                   </div>
                   <Link

@@ -122,6 +122,8 @@ const navigation: NavItem[] = [
       { label: 'Academic Year', href: '/settings/academic' },
       { label: 'Classes & Sections', href: '/settings/classes' },
       { label: 'Departments', href: '/settings/departments' },
+      { label: 'Events', href: '/events' },
+      { label: 'Event Types', href: '/settings/event-types' },
       { label: 'Users', href: '/settings/users', permission: PERMISSIONS.USERS_MANAGE },
     ],
   },
