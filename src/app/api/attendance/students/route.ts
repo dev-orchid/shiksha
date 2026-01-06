@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const attendanceSchema = z.object({
-  school_id: z.string().uuid().optional(),
   student_id: z.string().uuid(),
   class_id: z.string().uuid(),
   section_id: z.string().uuid(),
@@ -30,6 +30,12 @@ const bulkAttendanceSchema = z.object({
 // GET - Get student attendance
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -39,7 +45,6 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date')
     const startDate = searchParams.get('start_date')
     const endDate = searchParams.get('end_date')
-    const schoolId = searchParams.get('school_id')
 
     let query = supabase
       .from('student_attendance')
@@ -49,10 +54,7 @@ export async function GET(request: NextRequest) {
         classes (id, name),
         sections (id, name)
       `)
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId)
 
     if (studentId) {
       query = query.eq('student_id', studentId)
@@ -90,6 +92,12 @@ export async function GET(request: NextRequest) {
 // POST - Mark attendance (single or bulk)
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -97,14 +105,8 @@ export async function POST(request: NextRequest) {
     if (body.bulk && Array.isArray(body.bulk)) {
       const validatedData = bulkAttendanceSchema.parse(body)
 
-      // Get school_id from first student if not provided
-      const { data: studentData } = await supabase
-        .from('students')
-        .select('school_id')
-        .eq('id', validatedData.bulk[0].student_id)
-        .single()
-
-      const schoolId = studentData?.school_id
+      // Use authenticated user's school_id
+      const schoolId = authUser.schoolId
 
       const records = validatedData.bulk.map(item => ({
         school_id: schoolId,
@@ -140,16 +142,8 @@ export async function POST(request: NextRequest) {
     // Single attendance
     const validatedData = attendanceSchema.parse(body)
 
-    // Get school_id from student if not provided
-    let schoolId = validatedData.school_id
-    if (!schoolId) {
-      const { data: studentData } = await supabase
-        .from('students')
-        .select('school_id')
-        .eq('id', validatedData.student_id)
-        .single()
-      schoolId = studentData?.school_id
-    }
+    // Use authenticated user's school_id
+    const schoolId = authUser.schoolId
 
     const { data, error } = await supabase
       .from('student_attendance')

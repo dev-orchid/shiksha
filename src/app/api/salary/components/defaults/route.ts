@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 const DEFAULT_COMPONENTS = [
   // Earnings
@@ -20,14 +21,16 @@ const DEFAULT_COMPONENTS = [
 // POST - Create default salary components for a school
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
-    const body = await request.json()
+    const authUser = await getAuthenticatedUserSchool()
 
-    const { school_id } = body
-
-    if (!school_id) {
-      return NextResponse.json({ error: 'school_id is required' }, { status: 400 })
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const supabase = createAdminClient()
+
+    // Use authenticated user's school_id
+    const school_id = authUser.schoolId
 
     // Check existing components
     const { data: existingComponents } = await supabase

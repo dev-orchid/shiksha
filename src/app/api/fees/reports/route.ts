@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
     const startDate = searchParams.get('start_date') || new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]
     const endDate = searchParams.get('end_date') || new Date().toISOString().split('T')[0]
 
-    // Fetch all payments in date range
+    // Fetch all payments in date range for user's school
     const { data: payments, error: paymentsError } = await supabase
       .from('fee_payments')
       .select(`
@@ -30,6 +37,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
+      .eq('school_id', authUser.schoolId)
       .gte('payment_date', startDate)
       .lte('payment_date', endDate)
 
@@ -37,7 +45,7 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching payments:', paymentsError)
     }
 
-    // Fetch all invoices
+    // Fetch all invoices for user's school
     const { data: invoices, error: invoicesError } = await supabase
       .from('fee_invoices')
       .select(`
@@ -48,20 +56,23 @@ export async function GET(request: NextRequest) {
           classes:classes!current_class_id (id, name)
         )
       `)
+      .eq('school_id', authUser.schoolId)
 
     if (invoicesError) {
       console.error('Error fetching invoices:', invoicesError)
     }
 
-    // Fetch fee categories
+    // Fetch fee categories for user's school
     const { data: categories } = await supabase
       .from('fee_categories')
       .select('id, name')
+      .eq('school_id', authUser.schoolId)
 
-    // Fetch classes
+    // Fetch classes for user's school
     const { data: classes } = await supabase
       .from('classes')
       .select('id, name')
+      .eq('school_id', authUser.schoolId)
       .order('name')
 
     // Calculate totals

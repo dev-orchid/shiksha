@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
-// GET - List users
+// GET - List users for the authenticated user's school
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
     const role = searchParams.get('role')
@@ -12,6 +19,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('users')
       .select('*')
+      .eq('school_id', authUser.schoolId) // Filter by authenticated user's school
       .order('created_at', { ascending: false })
 
     if (role) {
@@ -35,25 +43,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create user
+// POST - Create user for the authenticated user's school
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
-    // Get school_id if not provided
-    let schoolId = body.school_id
-    if (!schoolId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schools?.id
-    }
-
     const userData = {
-      school_id: schoolId,
+      school_id: authUser.schoolId, // Always use authenticated user's school
       email: body.email,
       password_hash: body.password, // In production, hash this properly
       role: body.role || 'teacher',

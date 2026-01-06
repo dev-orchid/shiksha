@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const assignmentSchema = z.object({
@@ -12,18 +13,19 @@ const assignmentSchema = z.object({
 // GET - Get staff salary assignments
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
-    const schoolId = searchParams.get('school_id')
     const staffId = searchParams.get('staff_id')
     const currentOnly = searchParams.get('current_only') !== 'false'
 
-    if (!schoolId && !staffId) {
-      return NextResponse.json({ error: 'school_id or staff_id is required' }, { status: 400 })
-    }
-
-    // Use different query depending on whether we need school filtering
+    // Use different query depending on whether we need staff filtering
     if (staffId) {
       // Simple query when filtering by staff_id
       let query = supabase
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data })
     }
 
-    // Query with staff join when filtering by school_id
+    // Query with staff join when filtering by user's school
     let query = supabase
       .from('staff_salary_assignments')
       .select(`
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
           description
         )
       `)
-      .eq('staff.school_id', schoolId)
+      .eq('staff.school_id', authUser.schoolId)
       .order('effective_from', { ascending: false })
 
     if (currentOnly) {
@@ -98,7 +100,13 @@ export async function GET(request: NextRequest) {
 // POST - Create or update staff salary assignment
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     // Handle empty string salary_structure_id as null
@@ -160,7 +168,13 @@ export async function POST(request: NextRequest) {
 // PUT - Update salary assignment
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     const { id, ...updateData } = body

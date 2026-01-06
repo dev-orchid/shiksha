@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const examSchema = z.object({
-  school_id: z.string().uuid().optional(),
   academic_year_id: z.string().uuid().optional(),
   exam_type_id: z.string().uuid(),
   name: z.string().min(1),
@@ -24,10 +24,15 @@ const examSchema = z.object({
 // GET - List exams
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
-    const schoolId = searchParams.get('school_id')
     const academicYearId = searchParams.get('academic_year_id')
     const examTypeId = searchParams.get('exam_type_id')
     const status = searchParams.get('status')
@@ -52,10 +57,7 @@ export async function GET(request: NextRequest) {
           classes (id, name)
         )
       `)
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId)
 
     if (academicYearId) {
       query = query.eq('academic_year_id', academicYearId)
@@ -104,6 +106,12 @@ export async function GET(request: NextRequest) {
 // POST - Create exam with schedules
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -111,16 +119,8 @@ export async function POST(request: NextRequest) {
 
     const { schedules, ...examData } = validatedData
 
-    // Get school_id if not provided
-    let schoolId = examData.school_id
-    if (!schoolId) {
-      const { data: school } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = school?.id
-    }
+    // Use authenticated user's school_id
+    const schoolId = authUser.schoolId
 
     // Get academic_year_id if not provided
     let academicYearId = examData.academic_year_id
@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
       const { data: academicYear } = await supabase
         .from('academic_years')
         .select('id')
+        .eq('school_id', authUser.schoolId)
         .eq('is_current', true)
         .limit(1)
         .single()

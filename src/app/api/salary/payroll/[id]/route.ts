@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - Get single payroll record with details
 export async function GET(
@@ -7,14 +8,21 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const { id } = await params
 
-    // Get payroll record first
+    // Get payroll record first - ensure it belongs to user's school
     const { data: payroll, error: payrollError } = await supabase
       .from('salary_payroll')
       .select('*')
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
       .single()
 
     if (payrollError) {

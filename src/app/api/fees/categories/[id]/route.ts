@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - Get single fee category
 export async function GET(
@@ -7,6 +8,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
     const supabase = createAdminClient()
 
@@ -14,6 +21,7 @@ export async function GET(
       .from('fee_categories')
       .select('*')
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
       .single()
 
     if (error) {
@@ -36,6 +44,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
     const supabase = createAdminClient()
     const body = await request.json()
@@ -50,6 +64,7 @@ export async function PUT(
       .from('fee_categories')
       .update(updateData)
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
       .select()
       .single()
 
@@ -73,6 +88,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
     const supabase = createAdminClient()
 
@@ -80,6 +101,7 @@ export async function DELETE(
       .from('fee_categories')
       .delete()
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

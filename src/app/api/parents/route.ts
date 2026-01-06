@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - List/Search parents
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
     const search = searchParams.get('search') || ''
-    const schoolId = searchParams.get('school_id')
     const limit = parseInt(searchParams.get('limit') || '50')
 
     let query = supabase
@@ -26,12 +32,9 @@ export async function GET(request: NextRequest) {
           students (id, first_name, last_name, admission_number)
         )
       `)
+      .eq('school_id', authUser.schoolId)
       .order('first_name')
       .limit(limit)
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
 
     if (search) {
       query = query.or(

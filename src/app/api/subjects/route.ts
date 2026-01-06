@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - List subjects
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient()
-    const { searchParams } = new URL(request.url)
-    const schoolId = searchParams.get('school_id')
+    const authUser = await getAuthenticatedUserSchool()
 
-    let query = supabase
-      .from('subjects')
-      .select('*')
-      .order('name')
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await query
+    const supabase = createAdminClient()
+
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('*')
+      .eq('school_id', authUser.schoolId)
+      .order('name')
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -33,22 +33,17 @@ export async function GET(request: NextRequest) {
 // POST - Create subject
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
-    // Get school_id if not provided
-    let schoolId = body.school_id
-    if (!schoolId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schools?.id
-    }
-
     const subjectData = {
-      school_id: schoolId,
+      school_id: authUser.schoolId,
       name: body.name,
       code: body.code,
       description: body.description || null,

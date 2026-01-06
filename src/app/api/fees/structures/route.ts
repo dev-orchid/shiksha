@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - List fee structures
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
     const classId = searchParams.get('class_id')
@@ -16,6 +23,7 @@ export async function GET(request: NextRequest) {
         classes (id, name, grade_level),
         fee_categories (id, name)
       `)
+      .eq('school_id', authUser.schoolId)
       .order('created_at', { ascending: false })
 
     if (classId) {
@@ -42,6 +50,12 @@ export async function GET(request: NextRequest) {
 // POST - Create fee structure
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -52,25 +66,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get school_id and academic_year_id if not provided
-    let schoolId = body.school_id
+    // Use authenticated user's school_id
+    const schoolId = authUser.schoolId
     let academicYearId = body.academic_year_id
 
-    if (!schoolId || !academicYearId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schoolId || schools?.id
-
+    if (!academicYearId) {
       const { data: academicYear } = await supabase
         .from('academic_years')
         .select('id')
+        .eq('school_id', authUser.schoolId)
         .eq('is_current', true)
         .limit(1)
         .single()
-      academicYearId = academicYearId || academicYear?.id
+      academicYearId = academicYear?.id
     }
 
     const structureData = {

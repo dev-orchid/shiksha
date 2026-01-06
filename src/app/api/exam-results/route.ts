@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const examResultSchema = z.object({
@@ -18,6 +19,12 @@ const bulkExamResultsSchema = z.object({
 // GET - Get exam results
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -25,6 +32,22 @@ export async function GET(request: NextRequest) {
     const examScheduleId = searchParams.get('exam_schedule_id')
     const studentId = searchParams.get('student_id')
     const classId = searchParams.get('class_id')
+
+    // Get exam schedules for exams in this school first
+    const { data: schoolExams } = await supabase
+      .from('exams')
+      .select('id')
+      .eq('school_id', authUser.schoolId)
+
+    const schoolExamIds = schoolExams?.map(e => e.id) || []
+
+    // Get exam schedules for these exams
+    const { data: schedules } = await supabase
+      .from('exam_schedules')
+      .select('id')
+      .in('exam_id', schoolExamIds)
+
+    const scheduleIds = schedules?.map(s => s.id) || []
 
     let query = supabase
       .from('exam_results')
@@ -43,6 +66,7 @@ export async function GET(request: NextRequest) {
         ),
         students (id, first_name, last_name, admission_number, roll_number)
       `)
+      .in('exam_schedule_id', scheduleIds)
 
     if (examScheduleId) {
       query = query.eq('exam_schedule_id', examScheduleId)
@@ -96,6 +120,12 @@ export async function GET(request: NextRequest) {
 // POST - Save exam results (bulk)
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 

@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - Get payroll history grouped by month
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
-    const { searchParams } = new URL(request.url)
+    const authUser = await getAuthenticatedUserSchool()
 
-    const schoolId = searchParams.get('school_id')
-    const limit = parseInt(searchParams.get('limit') || '12')
-
-    if (!schoolId) {
-      return NextResponse.json({ error: 'school_id is required' }, { status: 400 })
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get all payroll records grouped by month/year
+    const supabase = createAdminClient()
+    const { searchParams } = new URL(request.url)
+
+    const limit = parseInt(searchParams.get('limit') || '12')
+
+    // Get all payroll records grouped by month/year for user's school
     const { data: payrollData, error } = await supabase
       .from('salary_payroll')
       .select('month, year, gross_salary, total_deductions, net_salary, status')
-      .eq('school_id', schoolId)
+      .eq('school_id', authUser.schoolId)
       .order('year', { ascending: false })
       .order('month', { ascending: false })
 

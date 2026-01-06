@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const generateSchema = z.object({
-  school_id: z.string().uuid(),
   academic_year_id: z.string().uuid().optional(),
   month: z.number().min(1).max(12),
   year: z.number().min(2000).max(2100),
@@ -14,11 +14,18 @@ const generateSchema = z.object({
 // POST - Generate payroll for all staff with salary assignments
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     const validatedData = generateSchema.parse(body)
-    const { school_id, month, year, working_days, staff_ids, academic_year_id } = validatedData
+    const { month, year, working_days, staff_ids, academic_year_id } = validatedData
+    const school_id = authUser.schoolId
 
     console.log('Generate Payroll - Request:', { school_id, month, year })
 

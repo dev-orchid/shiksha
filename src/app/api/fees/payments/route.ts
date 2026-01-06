@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - List payments
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -11,7 +18,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const invoiceId = searchParams.get('invoice_id')
     const studentId = searchParams.get('student_id')
-    const schoolId = searchParams.get('school_id')
     const startDate = searchParams.get('start_date')
     const endDate = searchParams.get('end_date')
     const paymentMode = searchParams.get('payment_mode')
@@ -38,10 +44,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `, { count: 'exact' })
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId)
 
     if (invoiceId) {
       query = query.eq('invoice_id', invoiceId)
@@ -93,6 +96,12 @@ export async function GET(request: NextRequest) {
 // POST - Record payment
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -104,11 +113,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the invoice to validate payment amount
+    // Get the invoice to validate payment amount - ensure it belongs to user's school
     const { data: invoice, error: invoiceError } = await supabase
       .from('fee_invoices')
       .select('*')
       .eq('id', body.invoice_id)
+      .eq('school_id', authUser.schoolId)
       .single()
 
     if (invoiceError || !invoice) {
@@ -129,8 +139,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get school_id if not provided
-    const schoolId = body.school_id || invoice.school_id
+    // Use authenticated user's school_id
+    const schoolId = authUser.schoolId
 
     // Generate receipt number if not provided
     const receiptNumber = body.receipt_number || `RCP-${Date.now()}`

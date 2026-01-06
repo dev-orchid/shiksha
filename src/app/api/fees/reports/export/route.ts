@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -10,7 +17,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('end_date') || new Date().toISOString().split('T')[0]
     const reportType = searchParams.get('type') || 'monthly'
 
-    // Fetch payments with details
+    // Fetch payments with details for user's school
     const { data: payments } = await supabase
       .from('fee_payments')
       .select(`
@@ -31,6 +38,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
+      .eq('school_id', authUser.schoolId)
       .gte('payment_date', startDate)
       .lte('payment_date', endDate)
       .order('payment_date', { ascending: false })

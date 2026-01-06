@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -12,13 +19,14 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || 'student' // 'student' or 'staff'
 
     if (type === 'staff') {
-      // Staff attendance report
+      // Staff attendance report for user's school
       const { data: staffAttendance, error: staffError } = await supabase
         .from('staff_attendance')
         .select(`
           *,
           staff (id, first_name, last_name, employee_id, designation, department_id, departments(id, name))
         `)
+        .eq('school_id', authUser.schoolId)
         .gte('date', startDate)
         .lte('date', endDate)
 
@@ -26,10 +34,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: staffError.message }, { status: 500 })
       }
 
-      // Get total staff count
+      // Get total staff count for user's school
       const { count: totalStaff } = await supabase
         .from('staff')
         .select('*', { count: 'exact', head: true })
+        .eq('school_id', authUser.schoolId)
         .eq('status', 'active')
 
       // Calculate stats
@@ -66,7 +75,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Student attendance report (default)
+    // Student attendance report (default) for user's school
     let attendanceQuery = supabase
       .from('student_attendance')
       .select(`
@@ -75,6 +84,7 @@ export async function GET(request: NextRequest) {
         classes (id, name),
         sections (id, name)
       `)
+      .eq('school_id', authUser.schoolId)
       .gte('date', startDate)
       .lte('date', endDate)
 
@@ -88,10 +98,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Get total active students
+    // Get total active students for user's school
     let studentCountQuery = supabase
       .from('students')
       .select('*', { count: 'exact', head: true })
+      .eq('school_id', authUser.schoolId)
       .eq('status', 'active')
 
     if (classId) {

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const payrollSchema = z.object({
-  school_id: z.string().uuid(),
   academic_year_id: z.string().uuid(),
   staff_id: z.string().uuid(),
   month: z.number().min(1).max(12),
@@ -20,7 +20,6 @@ const payrollSchema = z.object({
 })
 
 const bulkPayrollSchema = z.object({
-  school_id: z.string().uuid(),
   academic_year_id: z.string().uuid(),
   month: z.number().min(1).max(12),
   year: z.number().min(2000).max(2100),
@@ -41,7 +40,13 @@ const bulkPayrollSchema = z.object({
 // GET - Get payroll records
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
     const page = parseInt(searchParams.get('page') || '1')
@@ -50,20 +55,16 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month')
     const year = searchParams.get('year')
     const status = searchParams.get('status')
-    const schoolId = searchParams.get('school_id')
 
-    console.log('Payroll GET - Params:', { schoolId, month, year, staffId, status })
+    console.log('Payroll GET - Params:', { schoolId: authUser.schoolId, month, year, staffId, status })
 
     const offset = (page - 1) * limit
 
-    // First try a simple query without joins
+    // Query payroll for user's school
     let query = supabase
       .from('salary_payroll')
       .select('*', { count: 'exact' })
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId)
 
     if (staffId) {
       query = query.eq('staff_id', staffId)
@@ -133,7 +134,13 @@ export async function GET(request: NextRequest) {
 // POST - Create payroll (single or bulk)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     // Check if bulk payroll
@@ -141,7 +148,7 @@ export async function POST(request: NextRequest) {
       const validatedData = bulkPayrollSchema.parse(body)
 
       const records = validatedData.payroll.map(item => ({
-        school_id: validatedData.school_id,
+        school_id: authUser.schoolId,
         academic_year_id: validatedData.academic_year_id,
         month: validatedData.month,
         year: validatedData.year,
@@ -183,6 +190,7 @@ export async function POST(request: NextRequest) {
       .from('salary_payroll')
       .upsert({
         ...validatedData,
+        school_id: authUser.schoolId,
         status: 'pending',
       }, {
         onConflict: 'staff_id,month,year',

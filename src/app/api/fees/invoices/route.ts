@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - List invoices with filters
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -12,7 +19,6 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get('student_id')
     const classId = searchParams.get('class_id')
     const status = searchParams.get('status')
-    const schoolId = searchParams.get('school_id')
     const startDate = searchParams.get('start_date')
     const endDate = searchParams.get('end_date')
 
@@ -33,10 +39,7 @@ export async function GET(request: NextRequest) {
           sections:sections!current_section_id (id, name)
         )
       `, { count: 'exact' })
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId)
 
     if (studentId) {
       query = query.eq('student_id', studentId)
@@ -88,6 +91,12 @@ export async function GET(request: NextRequest) {
 // POST - Create new invoice
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -102,12 +111,12 @@ export async function POST(request: NextRequest) {
     const month = body.month || new Date().getMonth() + 1
     const year = body.year || new Date().getFullYear()
 
-    // Check if invoice already exists for this student/month/year
-    // Use .limit(1) instead of .maybeSingle() to handle cases where duplicates already exist
+    // Check if invoice already exists for this student/month/year within user's school
     const { data: existingInvoices } = await supabase
       .from('fee_invoices')
       .select('id, invoice_number, status')
       .eq('student_id', body.student_id)
+      .eq('school_id', authUser.schoolId)
       .eq('month', month)
       .eq('year', year)
       .limit(1)
@@ -123,25 +132,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get school_id and academic_year_id if not provided
-    let schoolId = body.school_id
+    // Use authenticated user's school_id
+    const schoolId = authUser.schoolId
     let academicYearId = body.academic_year_id
 
-    if (!schoolId || !academicYearId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schoolId || schools?.id
-
+    if (!academicYearId) {
       const { data: academicYear } = await supabase
         .from('academic_years')
         .select('id')
+        .eq('school_id', authUser.schoolId)
         .eq('is_current', true)
         .limit(1)
         .single()
-      academicYearId = academicYearId || academicYear?.id
+      academicYearId = academicYear?.id
     }
 
     // Generate invoice number if not provided

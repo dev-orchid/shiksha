@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - Get single exam
 export async function GET(
@@ -7,6 +8,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
     const supabase = createAdminClient()
 
@@ -31,6 +38,7 @@ export async function GET(
         )
       `)
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
       .single()
 
     if (error) {
@@ -53,17 +61,24 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
     const supabase = createAdminClient()
     const body = await request.json()
 
     const { schedules, ...examData } = body
 
-    // Update exam
+    // Update exam - ensure it belongs to user's school
     const { data, error } = await supabase
       .from('exams')
       .update(examData)
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
       .select()
       .single()
 
@@ -112,17 +127,24 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
     const supabase = createAdminClient()
 
     // Delete exam schedules first (cascade)
     await supabase.from('exam_schedules').delete().eq('exam_id', id)
 
-    // Delete exam
+    // Delete exam - ensure it belongs to user's school
     const { error } = await supabase
       .from('exams')
       .delete()
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

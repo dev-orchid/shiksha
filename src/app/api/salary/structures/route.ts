@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const structureSchema = z.object({
-  school_id: z.string().uuid(),
   name: z.string().min(1).max(100),
   description: z.string().optional(),
   employee_type: z.enum(['teaching', 'non_teaching', 'administrative', 'support']).optional().nullable(),
@@ -18,16 +18,17 @@ const structureSchema = z.object({
 // GET - Get all salary structures
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
-    const schoolId = searchParams.get('school_id')
     const employeeType = searchParams.get('employee_type')
     const activeOnly = searchParams.get('active_only') !== 'false'
-
-    if (!schoolId) {
-      return NextResponse.json({ error: 'school_id is required' }, { status: 400 })
-    }
 
     let query = supabase
       .from('salary_structures')
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('school_id', schoolId)
+      .eq('school_id', authUser.schoolId)
       .order('name')
 
     if (activeOnly) {
@@ -89,16 +90,22 @@ export async function GET(request: NextRequest) {
 // POST - Create a new salary structure
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     const validatedData = structureSchema.parse(body)
     const { components, ...structureData } = validatedData
 
-    // Create the structure
+    // Create the structure with authenticated user's school_id
     const { data: structure, error: structureError } = await supabase
       .from('salary_structures')
-      .insert(structureData)
+      .insert({ ...structureData, school_id: authUser.schoolId })
       .select()
       .single()
 
@@ -145,7 +152,13 @@ export async function POST(request: NextRequest) {
 // PUT - Update a salary structure
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     const { id, components, ...updateData } = body
@@ -154,11 +167,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Structure ID is required' }, { status: 400 })
     }
 
-    // Update the structure
+    // Update the structure - ensure it belongs to user's school
     const { data: structure, error: structureError } = await supabase
       .from('salary_structures')
       .update(updateData)
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
       .select()
       .single()
 
@@ -203,7 +217,13 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete a salary structure
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
     const id = searchParams.get('id')
@@ -212,11 +232,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Structure ID is required' }, { status: 400 })
     }
 
-    // Soft delete by setting is_active to false
+    // Soft delete by setting is_active to false - ensure it belongs to user's school
     const { error } = await supabase
       .from('salary_structures')
       .update({ is_active: false })
       .eq('id', id)
+      .eq('school_id', authUser.schoolId)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

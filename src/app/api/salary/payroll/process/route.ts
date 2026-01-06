@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const processSchema = z.object({
-  school_id: z.string().uuid(),
   payroll_ids: z.array(z.string().uuid()).min(1),
   action: z.enum(['process', 'pay', 'cancel']).default('process'),
   payment_mode: z.enum(['bank_transfer', 'cheque', 'cash']).optional(),
@@ -14,25 +14,21 @@ const processSchema = z.object({
 // POST - Process/pay payroll for selected staff
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     const validatedData = processSchema.parse(body)
-    const { school_id, payroll_ids, action, payment_mode, payment_date, remarks } = validatedData
+    const { payroll_ids, action, payment_mode, payment_date, remarks } = validatedData
+    const school_id = authUser.schoolId
 
-    // Get current user from users table (not just auth)
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    // Get the user record from users table
-    let userId = null
-    if (authUser?.id) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', authUser.id)
-        .single()
-      userId = userData?.id || null
-    }
+    // Use authenticated user's ID
+    const userId = authUser.userId
 
     if (action === 'process') {
       // Update payroll status to 'processed'

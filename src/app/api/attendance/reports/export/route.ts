@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -12,13 +19,14 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || 'student'
 
     if (type === 'staff') {
-      // Export staff attendance
+      // Export staff attendance for user's school
       const { data: staffAttendance } = await supabase
         .from('staff_attendance')
         .select(`
           *,
           staff (first_name, last_name, employee_id, designation, departments(name))
         `)
+        .eq('school_id', authUser.schoolId)
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date', { ascending: true })
@@ -60,7 +68,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Export student attendance (default)
+    // Export student attendance (default) for user's school
     let query = supabase
       .from('student_attendance')
       .select(`
@@ -69,6 +77,7 @@ export async function GET(request: NextRequest) {
         classes (name),
         sections (name)
       `)
+      .eq('school_id', authUser.schoolId)
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: true })

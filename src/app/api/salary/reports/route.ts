@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - Get salary reports/analytics
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
-    const { searchParams } = new URL(request.url)
+    const authUser = await getAuthenticatedUserSchool()
 
-    const schoolId = searchParams.get('school_id')
-    const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()))
-
-    if (!schoolId) {
-      return NextResponse.json({ error: 'school_id is required' }, { status: 400 })
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get all payroll records for the year
+    const supabase = createAdminClient()
+    const { searchParams } = new URL(request.url)
+
+    const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()))
+
+    // Get all payroll records for the year for user's school
     const { data: payrollData, error: payrollError } = await supabase
       .from('salary_payroll')
       .select(`
@@ -30,7 +32,7 @@ export async function GET(request: NextRequest) {
           departments (id, name)
         )
       `)
-      .eq('school_id', schoolId)
+      .eq('school_id', authUser.schoolId)
       .eq('year', year)
 
     if (payrollError) {
@@ -38,12 +40,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: payrollError.message }, { status: 500 })
     }
 
-    // Get total staff count
+    // Get total staff count for user's school
     const { count: totalStaff } = await supabase
       .from('staff')
       .select('*', { count: 'exact', head: true })
-      .eq('school_id', schoolId)
-      .eq('is_active', true)
+      .eq('school_id', authUser.schoolId)
+      .eq('status', 'active')
 
     // Calculate yearly totals
     const totalPaid = payrollData

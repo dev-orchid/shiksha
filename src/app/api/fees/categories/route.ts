@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - List fee categories
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
     const isActive = searchParams.get('is_active')
@@ -11,6 +18,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('fee_categories')
       .select('*')
+      .eq('school_id', authUser.schoolId)
       .order('name')
 
     if (isActive !== null && isActive !== undefined) {
@@ -33,6 +41,12 @@ export async function GET(request: NextRequest) {
 // POST - Create fee category
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -40,19 +54,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'name is required' }, { status: 400 })
     }
 
-    // Get school_id if not provided
-    let schoolId = body.school_id
-    if (!schoolId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schools?.id
-    }
-
     const categoryData = {
-      school_id: schoolId,
+      school_id: authUser.schoolId,
       name: body.name,
       description: body.description || null,
       is_recurring: body.is_recurring ?? true,

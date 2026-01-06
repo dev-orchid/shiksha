@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - Get salary dashboard statistics
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
-    const schoolId = searchParams.get('school_id')
     const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1))
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()))
 
-    if (!schoolId) {
-      return NextResponse.json({ error: 'school_id is required' }, { status: 400 })
-    }
-
-    // Get current month payroll data
+    // Get current month payroll data for user's school
     const { data: payrollData, error: payrollError } = await supabase
       .from('salary_payroll')
       .select('gross_salary, total_deductions, net_salary, status')
-      .eq('school_id', schoolId)
+      .eq('school_id', authUser.schoolId)
       .eq('month', month)
       .eq('year', year)
 
@@ -28,12 +30,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: payrollError.message }, { status: 500 })
     }
 
-    // Get total staff count
+    // Get total staff count for user's school
     const { count: totalStaff, error: staffError } = await supabase
       .from('staff')
       .select('*', { count: 'exact', head: true })
-      .eq('school_id', schoolId)
-      .eq('is_active', true)
+      .eq('school_id', authUser.schoolId)
+      .eq('status', 'active')
 
     if (staffError) {
       console.error('Error fetching staff count:', staffError)

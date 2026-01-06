@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const examTypeSchema = z.object({
-  school_id: z.string().uuid().optional(),
   name: z.string().min(1),
   description: z.string().optional(),
   weightage: z.number().optional(),
@@ -13,21 +13,20 @@ const examTypeSchema = z.object({
 // GET - List exam types
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient()
-    const { searchParams } = new URL(request.url)
-    const schoolId = searchParams.get('school_id')
+    const authUser = await getAuthenticatedUserSchool()
 
-    let query = supabase
-      .from('exam_types')
-      .select('*')
-      .eq('is_active', true)
-      .order('name')
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await query
+    const supabase = createAdminClient()
+
+    const { data, error } = await supabase
+      .from('exam_types')
+      .select('*')
+      .eq('school_id', authUser.schoolId)
+      .eq('is_active', true)
+      .order('name')
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -43,27 +42,22 @@ export async function GET(request: NextRequest) {
 // POST - Create exam type
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
     const validatedData = examTypeSchema.parse(body)
 
-    // Get school_id if not provided
-    let schoolId = validatedData.school_id
-    if (!schoolId) {
-      const { data: school } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = school?.id
-    }
-
     const { data, error } = await supabase
       .from('exam_types')
       .insert({
         ...validatedData,
-        school_id: schoolId,
+        school_id: authUser.schoolId,
         is_active: validatedData.is_active ?? true,
       })
       .select()

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const staffAttendanceSchema = z.object({
-  school_id: z.string().uuid().optional(),
   staff_id: z.string().uuid(),
   date: z.string(),
   status: z.enum(['present', 'absent', 'late', 'half_day', 'on_leave', 'holiday']),
@@ -26,6 +26,12 @@ const bulkStaffAttendanceSchema = z.object({
 // GET - Get staff attendance
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -34,7 +40,6 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date')
     const startDate = searchParams.get('start_date')
     const endDate = searchParams.get('end_date')
-    const schoolId = searchParams.get('school_id')
 
     let query = supabase
       .from('staff_attendance')
@@ -42,10 +47,7 @@ export async function GET(request: NextRequest) {
         *,
         staff (id, first_name, last_name, employee_id, designation, department_id, departments(id, name))
       `)
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId)
 
     if (staffId) {
       query = query.eq('staff_id', staffId)
@@ -81,6 +83,12 @@ export async function GET(request: NextRequest) {
 // POST - Mark staff attendance (single or bulk)
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -88,14 +96,8 @@ export async function POST(request: NextRequest) {
     if (body.bulk && Array.isArray(body.bulk)) {
       const validatedData = bulkStaffAttendanceSchema.parse(body)
 
-      // Get school_id from first staff member if not provided
-      const { data: staffData } = await supabase
-        .from('staff')
-        .select('school_id')
-        .eq('id', validatedData.bulk[0].staff_id)
-        .single()
-
-      const schoolId = staffData?.school_id
+      // Use authenticated user's school_id
+      const schoolId = authUser.schoolId
 
       const records = validatedData.bulk.map(item => ({
         school_id: schoolId,
@@ -128,16 +130,8 @@ export async function POST(request: NextRequest) {
     // Single attendance
     const validatedData = staffAttendanceSchema.parse(body)
 
-    // Get school_id from staff if not provided
-    let schoolId = validatedData.school_id
-    if (!schoolId) {
-      const { data: staffData } = await supabase
-        .from('staff')
-        .select('school_id')
-        .eq('id', validatedData.staff_id)
-        .single()
-      schoolId = staffData?.school_id
-    }
+    // Use authenticated user's school_id
+    const schoolId = authUser.schoolId
 
     const { data, error } = await supabase
       .from('staff_attendance')

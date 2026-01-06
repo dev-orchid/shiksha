@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const gradeSettingSchema = z.object({
-  school_id: z.string().uuid().optional(),
   academic_year_id: z.string().uuid().optional(),
   grade: z.string().min(1),
   min_percentage: z.number().min(0).max(100),
@@ -19,19 +19,21 @@ const bulkGradeSettingsSchema = z.object({
 // GET - List grade settings
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
-    const schoolId = searchParams.get('school_id')
     const academicYearId = searchParams.get('academic_year_id')
 
     let query = supabase
       .from('grade_settings')
       .select('*')
+      .eq('school_id', authUser.schoolId)
       .order('min_percentage', { ascending: false })
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
 
     if (academicYearId) {
       query = query.eq('academic_year_id', academicYearId)
@@ -53,21 +55,19 @@ export async function GET(request: NextRequest) {
 // POST - Create/Update grade settings (bulk)
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
     const validatedData = bulkGradeSettingsSchema.parse(body)
 
-    // Get school_id if not provided
-    let schoolId = validatedData.grades[0]?.school_id
-    if (!schoolId) {
-      const { data: school } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = school?.id
-    }
+    // Use authenticated user's school_id
+    const schoolId = authUser.schoolId
 
     // Get academic_year_id if not provided
     let academicYearId = validatedData.grades[0]?.academic_year_id
@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       const { data: academicYear } = await supabase
         .from('academic_years')
         .select('id')
+        .eq('school_id', authUser.schoolId)
         .eq('is_current', true)
         .limit(1)
         .single()

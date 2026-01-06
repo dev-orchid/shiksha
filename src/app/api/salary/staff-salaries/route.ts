@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
 // GET - Get staff salaries for a specific month
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
-    const schoolId = searchParams.get('school_id')
     const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1))
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()))
     const departmentId = searchParams.get('department_id')
@@ -16,15 +22,11 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const offset = (page - 1) * limit
 
-    if (!schoolId) {
-      return NextResponse.json({ error: 'school_id is required' }, { status: 400 })
-    }
-
-    // First, get payroll records
+    // First, get payroll records for user's school
     const { data: payrollData, error: payrollError, count } = await supabase
       .from('salary_payroll')
       .select('*', { count: 'exact' })
-      .eq('school_id', schoolId)
+      .eq('school_id', authUser.schoolId)
       .eq('month', month)
       .eq('year', year)
       .order('created_at', { ascending: false })
@@ -134,7 +136,13 @@ export async function GET(request: NextRequest) {
 // POST - Create/update staff salary assignment
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = createAdminClient()
     const body = await request.json()
 
     const { staff_id, salary_structure_id, basic_salary, effective_from } = body
