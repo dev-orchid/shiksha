@@ -58,7 +58,23 @@ export default function AddStudentPage() {
 
   useEffect(() => {
     fetchClasses()
+    fetchNextAdmissionNumber()
   }, [])
+
+  const fetchNextAdmissionNumber = async () => {
+    try {
+      const response = await fetch('/api/students/next-admission-number')
+      if (response.ok) {
+        const data = await response.json()
+        setFormData((prev) => ({
+          ...prev,
+          admission_number: data.admission_number || '',
+        }))
+      }
+    } catch {
+      console.error('Failed to fetch next admission number')
+    }
+  }
 
   useEffect(() => {
     if (formData.class_id) {
@@ -159,32 +175,6 @@ export default function AddStudentPage() {
     setError('')
 
     try {
-      // Get school_id from the session/user context
-      // For now, we'll fetch it from the API or use a default
-      const schoolResponse = await fetch('/api/settings/school')
-      let schoolId = null
-      if (schoolResponse.ok) {
-        const schoolData = await schoolResponse.json()
-        schoolId = schoolData.data?.id
-      }
-
-      if (!schoolId) {
-        // Try to get from schools list
-        const schoolsResponse = await fetch('/api/schools')
-        if (schoolsResponse.ok) {
-          const schoolsData = await schoolsResponse.json()
-          if (schoolsData.data && schoolsData.data.length > 0) {
-            schoolId = schoolsData.data[0].id
-          }
-        }
-      }
-
-      if (!schoolId) {
-        setError('No school configured. Please configure school settings first.')
-        setLoading(false)
-        return
-      }
-
       // Upload photo if selected
       let photoUrl: string | null = null
       if (photoFile) {
@@ -197,8 +187,8 @@ export default function AddStudentPage() {
         }
       }
 
+      // school_id is now determined by the API from the authenticated user's session
       const payload = {
-        school_id: schoolId,
         admission_number: formData.admission_number,
         first_name: formData.first_name,
         last_name: formData.last_name || formData.first_name,
@@ -444,7 +434,7 @@ export default function AddStudentPage() {
                     name="admission_number"
                     value={formData.admission_number}
                     onChange={handleChange}
-                    placeholder="STU-2024-XXX"
+                    placeholder="STU-2026-01"
                     required
                   />
                   <Select

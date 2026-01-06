@@ -33,41 +33,46 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient()
 
-    // Check if school exists, if not create it
-    let schoolId: string
-
-    const { data: existingSchool } = await supabase
-      .from('schools')
+    // Check if email is already registered
+    const { data: existingUser } = await supabase
+      .from('users')
       .select('id')
-      .eq('name', schoolName)
+      .eq('email', email)
       .single()
 
-    if (existingSchool) {
-      schoolId = existingSchool.id
-    } else {
-      // Create new school
-      const { data: newSchool, error: schoolError } = await supabase
-        .from('schools')
-        .insert({
-          name: schoolName,
-          code: schoolName.substring(0, 10).toUpperCase().replace(/\s/g, ''),
-          email: email,
-          phone: phone || null,
-          is_active: true,
-        })
-        .select('id')
-        .single()
-
-      if (schoolError) {
-        console.error('Error creating school:', schoolError)
-        return NextResponse.json(
-          { error: 'Failed to create school' },
-          { status: 500 }
-        )
-      }
-
-      schoolId = newSchool.id
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 409 }
+      )
     }
+
+    // ALWAYS create a new school for each admin signup
+    // Each organization gets their own isolated school/tenant
+    // Only parent accounts should share the same school_id (handled separately)
+    const schoolCode = `${schoolName.substring(0, 6).toUpperCase().replace(/\s/g, '')}${Date.now().toString(36).toUpperCase()}`
+
+    const { data: newSchool, error: schoolError } = await supabase
+      .from('schools')
+      .insert({
+        name: schoolName,
+        code: schoolCode, // Unique code using timestamp
+        email: email,
+        phone: phone || null,
+        is_active: true,
+      })
+      .select('id')
+      .single()
+
+    if (schoolError) {
+      console.error('Error creating school:', schoolError)
+      return NextResponse.json(
+        { error: 'Failed to create school' },
+        { status: 500 }
+      )
+    }
+
+    const schoolId = newSchool.id
 
     // Create user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -114,20 +119,22 @@ export async function POST(request: Request) {
     }
 
     // Create staff profile for the user
+    const employeeId = `ADMIN-${Date.now().toString(36).toUpperCase()}`
     await supabase
       .from('staff')
       .insert({
         school_id: schoolId,
         user_id: authData.user.id,
+        employee_id: employeeId,
         first_name: name.split(' ')[0],
         last_name: name.split(' ').slice(1).join(' ') || '',
         email: email,
-        phone: phone || null,
+        phone: phone || '0000000000', // Phone is required in schema
         designation: 'Administrator',
-        department: 'Administration',
-        employment_type: 'full_time',
-        join_date: new Date().toISOString().split('T')[0],
-        is_active: true,
+        employee_type: 'admin', // Required field
+        employment_type: 'permanent',
+        joining_date: new Date().toISOString().split('T')[0], // Correct column name
+        status: 'active',
       })
 
     return NextResponse.json({

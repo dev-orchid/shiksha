@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
-// GET - List departments
+// GET - List departments for the authenticated user's school
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient()
-    const { searchParams } = new URL(request.url)
+    const authUser = await getAuthenticatedUserSchool()
 
-    const schoolId = searchParams.get('school_id')
-
-    let query = supabase
-      .from('departments')
-      .select('*')
-      .eq('is_active', true)
-      .order('name', { ascending: true })
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await query
+    const supabase = createAdminClient()
+
+    const { data, error } = await supabase
+      .from('departments')
+      .select('*')
+      .eq('school_id', authUser.schoolId) // Always filter by authenticated user's school
+      .eq('is_active', true)
+      .order('name', { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -32,29 +31,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new department
+// POST - Create new department for the authenticated user's school
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
-    // Get school_id if not provided
-    let schoolId = body.school_id
-    if (!schoolId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schools?.id
-    }
-
-    if (!schoolId) {
-      return NextResponse.json({ error: 'No school configured' }, { status: 400 })
-    }
-
     const departmentData = {
-      school_id: schoolId,
+      school_id: authUser.schoolId, // Always use authenticated user's school
       name: body.name,
       code: body.code || null,
       description: body.description || null,

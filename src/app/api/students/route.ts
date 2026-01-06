@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 // Parent schema for creating parent accounts
@@ -12,8 +13,7 @@ const parentSchema = z.object({
 }).optional()
 
 const studentSchema = z.object({
-  // Required fields
-  school_id: z.string().uuid(),
+  // Required fields (school_id is now provided by authentication)
   admission_number: z.string().min(1),
   first_name: z.string().min(1),
   date_of_birth: z.string(),
@@ -181,9 +181,15 @@ async function createParentAccount(
   }
 }
 
-// GET - List students with pagination and filters
+// GET - List students with pagination and filters for the authenticated user's school
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -193,7 +199,6 @@ export async function GET(request: NextRequest) {
     const classId = searchParams.get('class_id')
     const sectionId = searchParams.get('section_id')
     const status = searchParams.get('status')
-    const schoolId = searchParams.get('school_id')
 
     const offset = (page - 1) * limit
 
@@ -205,10 +210,7 @@ export async function GET(request: NextRequest) {
         current_section:sections!current_section_id (id, name),
         school:schools!school_id (id, name)
       `, { count: 'exact' })
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId) // Always filter by authenticated user's school
 
     if (classId) {
       query = query.eq('current_class_id', classId)
@@ -286,16 +288,28 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new student
+// POST - Create new student for the authenticated user's school
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
     const validatedData = studentSchema.parse(body)
 
     // Extract parent data before creating student
-    const { father, mother, ...studentData } = validatedData
+    const { father, mother, ...studentFields } = validatedData
+
+    // Add school_id from authenticated user
+    const studentData = {
+      ...studentFields,
+      school_id: authUser.schoolId, // Always use authenticated user's school
+    }
 
     const { data, error } = await supabase
       .from('students')
@@ -317,14 +331,14 @@ export async function POST(request: NextRequest) {
     const parentAccounts: Array<{ relation: string; email?: string; password?: string }> = []
 
     if (father && father.name) {
-      const result = await createParentAccount(supabase, father, studentData.school_id, data.id)
+      const result = await createParentAccount(supabase, father, authUser.schoolId, data.id)
       if (result.success && result.email && result.password) {
         parentAccounts.push({ relation: 'Father', email: result.email, password: result.password })
       }
     }
 
     if (mother && mother.name) {
-      const result = await createParentAccount(supabase, mother, studentData.school_id, data.id)
+      const result = await createParentAccount(supabase, mother, authUser.schoolId, data.id)
       if (result.success && result.email && result.password) {
         parentAccounts.push({ relation: 'Mother', email: result.email, password: result.password })
       }

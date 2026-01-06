@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import {
   Users,
@@ -9,12 +10,13 @@ import {
   TrendingDown,
   Calendar,
 } from 'lucide-react'
+import { redirect } from 'next/navigation'
 
 export const metadata = {
   title: 'Dashboard | School Management System',
 }
 
-async function getDashboardStats() {
+async function getDashboardStats(schoolId: string) {
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
   const currentMonth = new Date()
@@ -26,7 +28,7 @@ async function getDashboardStats() {
   const firstDayPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1).toISOString().split('T')[0]
   const lastDayPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).toISOString().split('T')[0]
 
-  // Fetch all stats in parallel
+  // Fetch all stats in parallel - filtered by school_id for multi-tenancy
   const [
     studentsResult,
     prevStudentsResult,
@@ -39,34 +41,35 @@ async function getDashboardStats() {
     recentActivityResult,
   ] = await Promise.all([
     // Current students count
-    supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'active'),
     // Previous month students (approximate by created_at)
-    supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active').lt('created_at', firstDayOfMonth),
+    supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'active').lt('created_at', firstDayOfMonth),
     // Current teachers count
-    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('employee_type', 'teaching').eq('status', 'active'),
+    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('employee_type', 'teaching').eq('status', 'active'),
     // Previous month teachers
-    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('employee_type', 'teaching').eq('status', 'active').lt('created_at', firstDayOfMonth),
+    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('employee_type', 'teaching').eq('status', 'active').lt('created_at', firstDayOfMonth),
     // This month's fee collection
-    supabase.from('fee_payments').select('amount').gte('payment_date', firstDayOfMonth).lte('payment_date', lastDayOfMonth),
+    supabase.from('fee_payments').select('amount, fee_invoices!inner(students!inner(school_id))').eq('fee_invoices.students.school_id', schoolId).gte('payment_date', firstDayOfMonth).lte('payment_date', lastDayOfMonth),
     // Previous month's fee collection
-    supabase.from('fee_payments').select('amount').gte('payment_date', firstDayPrevMonth).lte('payment_date', lastDayPrevMonth),
+    supabase.from('fee_payments').select('amount, fee_invoices!inner(students!inner(school_id))').eq('fee_invoices.students.school_id', schoolId).gte('payment_date', firstDayPrevMonth).lte('payment_date', lastDayPrevMonth),
     // Today's attendance (present students)
-    supabase.from('student_attendance').select('id', { count: 'exact', head: true }).eq('date', today).in('status', ['present', 'late']),
+    supabase.from('student_attendance').select('id, students!inner(school_id)', { count: 'exact', head: true }).eq('students.school_id', schoolId).eq('date', today).in('status', ['present', 'late']),
     // Total students for attendance calculation
-    supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-    // Recent activity - last 5 fee payments
+    supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'active'),
+    // Recent activity - last 5 fee payments for this school
     supabase.from('fee_payments').select(`
       id,
       amount,
       payment_date,
       created_at,
-      fee_invoices (
-        students (
+      fee_invoices!inner (
+        students!inner (
           first_name,
-          last_name
+          last_name,
+          school_id
         )
       )
-    `).order('created_at', { ascending: false }).limit(5),
+    `).eq('fee_invoices.students.school_id', schoolId).order('created_at', { ascending: false }).limit(5),
   ])
 
   // Calculate values
@@ -132,10 +135,16 @@ function getTimeAgo(date: Date): string {
 }
 
 export default async function DashboardPage() {
+  const authUser = await getAuthenticatedUserSchool()
+
+  if (!authUser) {
+    redirect('/auth/login')
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const dashboardData = await getDashboardStats()
+  const dashboardData = await getDashboardStats(authUser.schoolId)
 
   const stats = [
     {

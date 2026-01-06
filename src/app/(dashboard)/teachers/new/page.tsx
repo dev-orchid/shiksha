@@ -61,7 +61,24 @@ export default function NewTeacherPage() {
         console.error('Failed to fetch departments')
       }
     }
+
+    async function fetchNextEmployeeId() {
+      try {
+        const response = await fetch('/api/staff/next-employee-id')
+        if (response.ok) {
+          const data = await response.json()
+          setFormData((prev) => ({
+            ...prev,
+            employee_id: data.employee_id || '',
+          }))
+        }
+      } catch {
+        console.error('Failed to fetch next employee ID')
+      }
+    }
+
     fetchDepartments()
+    fetchNextEmployeeId()
   }, [])
 
   const handleChange = (
@@ -137,7 +154,7 @@ export default function NewTeacherPage() {
                 value={formData.employee_id}
                 onChange={handleChange}
                 required
-                placeholder="EMP-001"
+                placeholder="EMP-2026-01"
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
-// Validation is done manually to allow school_id to be optional
-
-// GET - List sections
+// GET - List sections for the authenticated user's school
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
-
-    const schoolId = searchParams.get('school_id')
     const classId = searchParams.get('class_id')
 
     let query = supabase
@@ -18,10 +21,7 @@ export async function GET(request: NextRequest) {
         *,
         classes (id, name, grade_level)
       `)
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId) // Always filter by authenticated user's school
 
     if (classId) {
       query = query.eq('class_id', classId)
@@ -40,9 +40,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create section
+// POST - Create section for the authenticated user's school
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
@@ -54,26 +60,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get school_id from the class if not provided
-    let schoolId = body.school_id
-    if (!schoolId) {
-      const { data: classData } = await supabase
-        .from('classes')
-        .select('school_id')
-        .eq('id', body.class_id)
-        .single()
-      schoolId = classData?.school_id
-    }
+    // Verify the class belongs to the user's school
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select('school_id')
+      .eq('id', body.class_id)
+      .eq('school_id', authUser.schoolId)
+      .single()
 
-    if (!schoolId) {
+    if (classError || !classData) {
       return NextResponse.json(
-        { error: 'Could not determine school_id' },
+        { error: 'Invalid class or class does not belong to your school' },
         { status: 400 }
       )
     }
 
     const sectionData = {
-      school_id: schoolId,
+      school_id: authUser.schoolId, // Always use authenticated user's school
       class_id: body.class_id,
       name: body.name,
       capacity: body.capacity || 40,

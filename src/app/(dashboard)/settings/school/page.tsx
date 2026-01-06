@@ -55,7 +55,21 @@ export default function SchoolSettingsPage() {
       if (response.ok) {
         const data = await response.json()
         if (data.data) {
-          setFormData(data.data)
+          // Convert null values to empty strings to prevent React warnings
+          setFormData({
+            name: data.data.name || '',
+            code: data.data.code || '',
+            address: data.data.address || '',
+            city: data.data.city || '',
+            state: data.data.state || '',
+            pincode: data.data.pincode || '',
+            phone: data.data.phone || '',
+            email: data.data.email || '',
+            website: data.data.website || '',
+            principal_name: data.data.principal_name || '',
+            established_year: data.data.established_year || '',
+            board_affiliation: data.data.board_affiliation || '',
+          })
         }
       }
     } catch {

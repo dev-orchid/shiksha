@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const staffSchema = z.object({
-  school_id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional().nullable(),
   employee_id: z.string().min(1),
   first_name: z.string().min(1),
@@ -34,9 +34,15 @@ const staffSchema = z.object({
   employment_type: z.enum(['permanent', 'contract', 'temporary']).optional().nullable(),
 })
 
-// GET - List staff with pagination and filters
+// GET - List staff with pagination and filters for the authenticated user's school
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
@@ -46,7 +52,6 @@ export async function GET(request: NextRequest) {
     const departmentId = searchParams.get('department_id')
     const staffType = searchParams.get('staff_type')
     const status = searchParams.get('status')
-    const schoolId = searchParams.get('school_id')
 
     const offset = (page - 1) * limit
 
@@ -56,10 +61,7 @@ export async function GET(request: NextRequest) {
         *,
         department:departments!department_id (id, name)
       `, { count: 'exact' })
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId)
-    }
+      .eq('school_id', authUser.schoolId) // Always filter by authenticated user's school
 
     if (departmentId) {
       query = query.eq('department_id', departmentId)
@@ -100,22 +102,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new staff member
+// POST - Create new staff member for the authenticated user's school
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
-
-    // Get school_id if not provided
-    let schoolId = body.school_id
-    if (!schoolId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schools?.id
-    }
 
     // Validate required fields
     if (!body.employee_id || !body.first_name || !body.designation || !body.joining_date || !body.phone) {
@@ -127,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // Map form fields to database fields
     const staffData = {
-      school_id: schoolId,
+      school_id: authUser.schoolId, // Always use authenticated user's school
       employee_id: body.employee_id,
       first_name: body.first_name,
       last_name: body.last_name || null,

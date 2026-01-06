@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
-// GET - List academic years
+// GET - List academic years for the authenticated user's school
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
     const currentOnly = searchParams.get('current') === 'true'
@@ -11,6 +18,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('academic_years')
       .select('*')
+      .eq('school_id', authUser.schoolId) // Always filter by authenticated user's school
       .order('start_date', { ascending: false })
 
     if (currentOnly) {
@@ -30,37 +38,32 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create academic year
+// POST - Create academic year for the authenticated user's school
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
-    // Get school_id if not provided
-    let schoolId = body.school_id
-    if (!schoolId) {
-      const { data: schools } = await supabase
-        .from('schools')
-        .select('id')
-        .limit(1)
-        .single()
-      schoolId = schools?.id
-    }
-
     const academicYearData = {
-      school_id: schoolId,
+      school_id: authUser.schoolId, // Always use authenticated user's school
       name: body.name,
       start_date: body.start_date,
       end_date: body.end_date,
       is_current: body.is_current || false,
     }
 
-    // If this is set as current, unset others
+    // If this is set as current, unset others for this school only
     if (academicYearData.is_current) {
       await supabase
         .from('academic_years')
         .update({ is_current: false })
-        .eq('school_id', schoolId)
+        .eq('school_id', authUser.schoolId)
     }
 
     const { data, error } = await supabase

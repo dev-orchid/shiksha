@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 
-// GET - Get school settings (returns the first/primary school)
+// GET - Get school settings for the authenticated user's school
 export async function GET() {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
       .from('schools')
       .select('*')
-      .limit(1)
+      .eq('id', authUser.schoolId)
       .single()
 
     if (error && error.code !== 'PGRST116') {
@@ -23,48 +30,31 @@ export async function GET() {
   }
 }
 
-// PUT - Update school settings
+// PUT - Update school settings for the authenticated user's school
 export async function PUT(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const supabase = createAdminClient()
     const body = await request.json()
 
-    // First check if a school exists
-    const { data: existingSchool } = await supabase
+    // Update the authenticated user's school
+    const { data, error } = await supabase
       .from('schools')
-      .select('id')
-      .limit(1)
+      .update(body)
+      .eq('id', authUser.schoolId)
+      .select()
       .single()
 
-    let result
-    if (existingSchool) {
-      // Update existing school
-      const { data, error } = await supabase
-        .from('schools')
-        .update(body)
-        .eq('id', existingSchool.id)
-        .select()
-        .single()
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
-      result = data
-    } else {
-      // Create new school
-      const { data, error } = await supabase
-        .from('schools')
-        .insert(body)
-        .select()
-        .single()
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
-      result = data
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ data: result })
+    return NextResponse.json({ data })
   } catch (error) {
     console.error('Error updating school settings:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
