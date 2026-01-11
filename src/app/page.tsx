@@ -291,7 +291,7 @@ export default function LandingPage() {
               <h3 className="text-2xl font-bold mb-2">Starter</h3>
               <p className="text-gray-400 mb-6">Best for small schools</p>
               <div className="mb-6">
-                <span className="text-4xl font-bold">₹500</span>
+                <span className="text-4xl font-bold">₹50</span>
                 <span className="text-gray-400">/student/year</span>
               </div>
               <ul className="space-y-4 mb-8">
@@ -334,7 +334,7 @@ export default function LandingPage() {
               <h3 className="text-2xl font-bold mb-2">Professional</h3>
               <p className="text-gray-400 mb-6">Best for medium schools</p>
               <div className="mb-6">
-                <span className="text-4xl font-bold">₹350</span>
+                <span className="text-4xl font-bold">₹100</span>
                 <span className="text-gray-400">/student/year</span>
               </div>
               <ul className="space-y-4 mb-8">
