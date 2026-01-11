@@ -269,13 +269,13 @@ Week 4: Go Live
 ## Client Testimonials
 
 > "Shiksha has transformed how we manage our school. The fee collection module alone has saved us countless hours."
-> — *Principal, ABC International School*
+> — *Principal, Aurora Public School*
 
 > "The attendance tracking and parent communication features have improved our engagement significantly."
-> — *Administrator, XYZ Public School*
+> — *Administrator, Manas International Public School*
 
 > "Easy to use, comprehensive features, and excellent support. Highly recommended!"
-> — *Director, PQR Academy*
+> — *Director, St. Andrews Academy*
 
 ---
 
