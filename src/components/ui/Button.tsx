@@ -25,6 +25,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    // Filter out non-standard props that shouldn't be passed to DOM
+    const { asChild, ...buttonProps } = props as any
+
     const baseStyles =
       'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
 
@@ -52,7 +55,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         disabled={disabled || loading}
-        {...props}
+        {...buttonProps}
       >
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />

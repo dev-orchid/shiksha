@@ -27,7 +27,7 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$supabase$2d$js$2f$dist$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/@supabase/supabase-js/dist/index.mjs [app-rsc] (ecmascript) <locals>");
 ;
 function createAdminClient() {
-    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$supabase$2d$js$2f$dist$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__["createClient"])(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$supabase$2d$js$2f$dist$2f$index$2e$mjs__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$locals$3e$__["createClient"])(("TURBOPACK compile-time value", "https://szvlbkowmhpubjjkijnp.supabase.co"), process.env.SUPABASE_SERVICE_ROLE_KEY, {
         auth: {
             autoRefreshToken: false,
             persistSession: false
@@ -41,6 +41,8 @@ function createAdminClient() {
 __turbopack_context__.s([
     "getAuthenticatedUserSchool",
     ()=>getAuthenticatedUserSchool,
+    "isSuperAdmin",
+    ()=>isSuperAdmin,
     "requireAuthenticatedSchool",
     ()=>requireAuthenticatedSchool
 ]);
@@ -56,12 +58,20 @@ async function getAuthenticatedUserSchool() {
         if (authError || !user) {
             return null;
         }
-        // First try to get school_id from user_metadata (set during signup)
-        const metadataSchoolId = user.user_metadata?.school_id;
-        // Also look up the user record to get the school_id (more reliable)
+        // Look up the user record to get the school_id and role
         const adminClient = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2f$admin$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["createAdminClient"])();
-        const { data: userData, error: userError } = await adminClient.from('users').select('school_id, role').eq('auth_id', user.id).single();
-        // Use the school_id from the users table if available, fallback to metadata
+        const { data: userData, error: userError } = await adminClient.from('users').select('school_id, role').eq('id', user.id).single();
+        // Check if user is super_admin
+        if (userData?.role === 'super_admin') {
+            return {
+                userId: user.id,
+                schoolId: null,
+                email: user.email || '',
+                role: 'super_admin'
+            };
+        }
+        // For regular users, get school_id
+        const metadataSchoolId = user.user_metadata?.school_id;
         const schoolId = userData?.school_id || metadataSchoolId;
         if (!schoolId) {
             console.error('User has no associated school_id:', user.id);
@@ -84,6 +94,10 @@ async function requireAuthenticatedSchool() {
         throw new Error('Unauthorized: User not authenticated or has no associated school');
     }
     return authUser;
+}
+async function isSuperAdmin() {
+    const authUser = await getAuthenticatedUserSchool();
+    return authUser?.role === 'super_admin' && authUser?.schoolId === null;
 }
 }),
 "[project]/src/components/ui/Card.tsx [app-rsc] (client reference proxy) <module evaluation>", ((__turbopack_context__) => {

@@ -28,6 +28,7 @@ export function usePermissions() {
     canAny,
     canAll,
     role: userRole,
+    profile,
     isAuthenticated: !!user,
   }
 }

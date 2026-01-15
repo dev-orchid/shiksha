@@ -3,7 +3,7 @@ import { createAdminClient } from './admin'
 
 export interface AuthenticatedUser {
   userId: string
-  schoolId: string
+  schoolId: string | null  // Can be null for super_admin
   email: string
   role?: string
 }
@@ -13,6 +13,7 @@ export interface AuthenticatedUser {
  * This should be used in API routes to enforce multi-tenant isolation.
  *
  * Returns the user info with their school_id, or null if not authenticated.
+ * Note: super_admin users will have schoolId = null
  */
 export async function getAuthenticatedUserSchool(): Promise<AuthenticatedUser | null> {
   try {
@@ -25,18 +26,41 @@ export async function getAuthenticatedUserSchool(): Promise<AuthenticatedUser | 
       return null
     }
 
-    // First try to get school_id from user_metadata (set during signup)
-    const metadataSchoolId = user.user_metadata?.school_id
-
-    // Also look up the user record to get the school_id (more reliable)
+    // Look up the user record to get the school_id and role
     const adminClient = createAdminClient()
-    const { data: userData, error: userError } = await adminClient
+
+    // First try by ID
+    let { data: userData, error: userError } = await adminClient
       .from('users')
       .select('school_id, role')
-      .eq('auth_id', user.id)
+      .eq('id', user.id)
       .single()
 
-    // Use the school_id from the users table if available, fallback to metadata
+    if (userError) {
+      // If not found by ID, try by email (in case IDs don't match between auth and users table)
+      const { data: userByEmail } = await adminClient
+        .from('users')
+        .select('id, school_id, role')
+        .eq('email', user.email)
+        .single()
+
+      if (userByEmail) {
+        userData = userByEmail
+      }
+    }
+
+    // Check if user is super_admin
+    if (userData?.role === 'super_admin') {
+      return {
+        userId: user.id,
+        schoolId: null, // Super admin has no school restriction
+        email: user.email || '',
+        role: 'super_admin'
+      }
+    }
+
+    // For regular users, get school_id
+    const metadataSchoolId = user.user_metadata?.school_id
     const schoolId = userData?.school_id || metadataSchoolId
 
     if (!schoolId) {
@@ -68,4 +92,13 @@ export async function requireAuthenticatedSchool(): Promise<AuthenticatedUser> {
   }
 
   return authUser
+}
+
+/**
+ * Check if the authenticated user is a super admin.
+ * Super admins have no school_id restriction and can access all schools.
+ */
+export async function isSuperAdmin(): Promise<boolean> {
+  const authUser = await getAuthenticatedUserSchool()
+  return authUser?.role === 'super_admin' && authUser?.schoolId === null
 }

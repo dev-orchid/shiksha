@@ -13,7 +13,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$ssr$2f$dist$2f$module$2f$createBrowserClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@supabase/ssr/dist/module/createBrowserClient.js [app-client] (ecmascript)");
 ;
 function createClient() {
-    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$ssr$2f$dist$2f$module$2f$createBrowserClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createBrowserClient"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_SUPABASE_URL, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$ssr$2f$dist$2f$module$2f$createBrowserClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createBrowserClient"])(("TURBOPACK compile-time value", "https://szvlbkowmhpubjjkijnp.supabase.co"), ("TURBOPACK compile-time value", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6dmxia293bWhwdWJqamtpam5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxNTI5NTYsImV4cCI6MjA4MjcyODk1Nn0.mTVCJRZW_BS1KxrJzeFuS2bo6YCK2zGXousCjw9sztc"));
 }
 // Singleton instance for client-side usage
 let browserClient = null;
@@ -70,11 +70,26 @@ function SessionProvider({ children }) {
                     const userData = data;
                     // Get school_id from user record or fallback to auth metadata
                     const schoolId = userData?.school_id || authUser.user_metadata?.school_id || null;
-                    // Fetch school name separately if we have a school_id
+                    // Fetch school info and plan details if we have a school_id
                     let schoolName = null;
+                    let planType;
+                    let studentLimit;
+                    let adminUserLimit;
+                    let currentStudents;
+                    let currentAdminUsers;
                     if (schoolId) {
-                        const { data: schoolData } = await supabase.from('schools').select('name').eq('id', schoolId).single();
+                        // Fetch school name and plan info
+                        const { data: schoolData } = await supabase.from('schools').select('name, plan_type, student_limit, admin_user_limit').eq('id', schoolId).single();
                         schoolName = schoolData?.name ?? null;
+                        planType = schoolData?.plan_type;
+                        studentLimit = schoolData?.student_limit;
+                        adminUserLimit = schoolData?.admin_user_limit;
+                        // Fetch current usage stats
+                        const { data: usageData } = await supabase.rpc('get_school_current_usage', {
+                            p_school_id: schoolId
+                        }).single();
+                        currentStudents = usageData?.active_students || 0;
+                        currentAdminUsers = usageData?.admin_users || 0;
                     }
                     // Get display name from user metadata, fall back to email prefix
                     const displayName = authUser.user_metadata?.display_name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User';
@@ -85,7 +100,12 @@ function SessionProvider({ children }) {
                             displayName: displayName,
                             role: userData.role,
                             schoolId: schoolId,
-                            schoolName: schoolName
+                            schoolName: schoolName,
+                            planType,
+                            studentLimit,
+                            adminUserLimit,
+                            currentStudents,
+                            currentAdminUsers
                         });
                     } else {
                         // Fallback to user_metadata if user record doesn't exist yet
@@ -95,7 +115,12 @@ function SessionProvider({ children }) {
                             displayName: displayName,
                             role: authUser.user_metadata?.role || 'user',
                             schoolId: schoolId,
-                            schoolName: schoolName
+                            schoolName: schoolName,
+                            planType,
+                            studentLimit,
+                            adminUserLimit,
+                            currentStudents,
+                            currentAdminUsers
                         });
                     }
                 }
@@ -144,7 +169,7 @@ function SessionProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/src/components/providers/SessionProvider.tsx",
-        lineNumber: 133,
+        lineNumber: 168,
         columnNumber: 5
     }, this);
 }

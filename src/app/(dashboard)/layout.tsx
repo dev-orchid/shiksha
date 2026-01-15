@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 
@@ -15,14 +16,28 @@ export default async function DashboardRootLayout({
     redirect('/login')
   }
 
-  // Check user role and redirect parents/students to their portals
-  const { data: userData } = await supabase
+  // Use admin client to bypass RLS - super_admin users have school_id = NULL
+  // which may cause RLS policies to block them from reading their own record
+  const adminClient = createAdminClient()
+
+  // First try by ID
+  let { data: userData } = await adminClient
     .from('users')
-    .select('role')
+    .select('role, school_id')
     .eq('id', user.id)
     .single()
 
-  const userRole = (userData as { role: string } | null)?.role
+  // If not found by ID, try by email (in case IDs don't match)
+  if (!userData && user.email) {
+    const { data: userByEmail } = await adminClient
+      .from('users')
+      .select('role, school_id')
+      .eq('email', user.email)
+      .single()
+    userData = userByEmail
+  }
+
+  const userRole = (userData as { role: string; school_id: string | null } | null)?.role
 
   if (userRole === 'parent') {
     redirect('/parent')

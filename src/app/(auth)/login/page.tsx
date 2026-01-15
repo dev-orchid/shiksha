@@ -36,17 +36,20 @@ function LoginForm() {
         // Check user role to determine redirect
         const { data: userData } = await supabase
           .from('users')
-          .select('role')
+          .select('role, school_id')
           .eq('id', data.user.id)
           .single()
 
-        const userRole = (userData as { role: string } | null)?.role
+        const userRole = (userData as { role: string; school_id: string | null } | null)?.role
+        const schoolId = (userData as { role: string; school_id: string | null } | null)?.school_id
 
         // Redirect based on role
         if (userRole === 'parent') {
           router.push('/parent')
         } else if (userRole === 'student') {
           router.push('/student')
+        } else if (userRole === 'super_admin' && !schoolId) {
+          router.push('/super-admin')
         } else {
           router.push(callbackUrl)
         }

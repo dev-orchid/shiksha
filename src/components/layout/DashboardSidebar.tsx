@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
 import { usePermissions } from '@/hooks/usePermissions'
+import { usePlanFeatures } from '@/hooks/usePlanFeatures'
 import { PERMISSIONS } from '@/lib/constants/roles'
+import { Badge } from '@/components/ui/Badge'
 import {
   LayoutDashboard,
   Users,
@@ -20,6 +22,8 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Crown,
+  Lock,
 } from 'lucide-react'
 
 interface NavItem {
@@ -27,8 +31,26 @@ interface NavItem {
   href?: string
   icon: React.ReactNode
   permission?: string
-  children?: { label: string; href: string; permission?: string }[]
+  requiredFeature?: string
+  isPremium?: boolean
+  children?: { label: string; href: string; permission?: string; requiredFeature?: string; isPremium?: boolean }[]
 }
+
+// Super Admin Navigation
+const superAdminNavigation: NavItem[] = [
+  {
+    label: 'Dashboard',
+    href: '/super-admin',
+    icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    label: 'Settings',
+    icon: <Settings className="h-5 w-5" />,
+    children: [
+      { label: 'Profile', href: '/settings' },
+    ],
+  },
+]
 
 const navigation: NavItem[] = [
   {
@@ -125,6 +147,7 @@ const navigation: NavItem[] = [
       { label: 'Events', href: '/events' },
       { label: 'Event Types', href: '/settings/event-types' },
       { label: 'Users', href: '/settings/users', permission: PERMISSIONS.USERS_MANAGE },
+      { label: 'Plan & Billing', href: '/settings/plan' },
     ],
   },
 ]
@@ -136,8 +159,12 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ open, onClose }: DashboardSidebarProps) {
   const pathname = usePathname()
-  const { can } = usePermissions()
+  const { can, profile } = usePermissions()
+  const { hasFeatureAccess } = usePlanFeatures()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
+
+  // Check if user is super admin
+  const isSuperAdmin = profile?.role === 'super_admin' && !profile?.schoolId
 
   const toggleExpanded = (label: string) => {
     setExpandedItems((prev) =>
@@ -151,7 +178,12 @@ export function DashboardSidebar({ open, onClose }: DashboardSidebarProps) {
   const isParentActive = (children?: { href: string }[]) =>
     children?.some((child) => pathname === child.href)
 
-  const filteredNavigation = navigation.filter((item) => {
+  // Use super admin navigation if user is super admin
+  const navItems = isSuperAdmin ? superAdminNavigation : navigation
+
+  const filteredNavigation = navItems.filter((item) => {
+    // Super admin navigation has no permissions
+    if (isSuperAdmin) return true
     if (item.permission && !can(item.permission as any)) return false
     return true
   })
@@ -160,11 +192,13 @@ export function DashboardSidebar({ open, onClose }: DashboardSidebarProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">SMS</span>
           </div>
-          <span className="font-semibold text-gray-900">School MS</span>
+          <span className="font-semibold text-gray-900">
+            {isSuperAdmin ? 'Super Admin' : 'School MS'}
+          </span>
         </Link>
         <button
           onClick={onClose}
@@ -182,10 +216,14 @@ export function DashboardSidebar({ open, onClose }: DashboardSidebarProps) {
 
           if (hasChildren) {
             const visibleChildren = item.children!.filter(
-              (child) => !child.permission || can(child.permission as any)
+              (child) => isSuperAdmin || !child.permission || can(child.permission as any)
             )
 
             if (visibleChildren.length === 0) return null
+
+            const hasAccess = item.requiredFeature
+              ? hasFeatureAccess(item.requiredFeature as any)
+              : true
 
             return (
               <div key={item.label}>
@@ -198,9 +236,18 @@ export function DashboardSidebar({ open, onClose }: DashboardSidebarProps) {
                       : 'text-gray-700 hover:bg-gray-100'
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     {item.icon}
                     <span>{item.label}</span>
+                    {item.isPremium && !hasAccess && (
+                      <Badge variant="warning" className="text-xs px-1.5 py-0">
+                        <Crown className="h-3 w-3 inline mr-0.5" />
+                        Pro
+                      </Badge>
+                    )}
+                    {item.isPremium && hasAccess && (
+                      <Crown className="h-3.5 w-3.5 text-yellow-500" />
+                    )}
                   </div>
                   {isExpanded ? (
                     <ChevronDown className="h-4 w-4" />
@@ -231,20 +278,35 @@ export function DashboardSidebar({ open, onClose }: DashboardSidebarProps) {
             )
           }
 
+          const hasAccess = item.requiredFeature
+            ? hasFeatureAccess(item.requiredFeature as any)
+            : true
+
           return (
             <Link
               key={item.label}
               href={item.href!}
               onClick={onClose}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive(item.href!)
                   ? 'bg-primary text-white'
                   : 'text-gray-700 hover:bg-gray-100'
               )}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <div className="flex items-center gap-2">
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+              {item.isPremium && !hasAccess && (
+                <Badge variant="warning" className="text-xs px-1.5 py-0">
+                  <Crown className="h-3 w-3 inline mr-0.5" />
+                  Pro
+                </Badge>
+              )}
+              {item.isPremium && hasAccess && (
+                <Crown className="h-3.5 w-3.5 text-yellow-500" />
+              )}
             </Link>
           )
         })}

@@ -181,9 +181,10 @@ export default function SendMessagePage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
+    
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
         <Link href="/whatsapp">
           <Button variant="ghost" size="sm" icon={<ArrowLeft className="h-4 w-4" />}>
             Back
@@ -441,5 +442,6 @@ export default function SendMessagePage() {
         </div>
       </div>
     </div>
+    
   )
 }

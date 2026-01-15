@@ -260,9 +260,10 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/whatsapp/groups">
             <Button variant="outline" size="sm" icon={<ArrowLeft className="h-4 w-4" />}>
@@ -479,5 +480,6 @@ export default function GroupDetailPage() {
         </div>
       )}
     </div>
+    
   )
 }

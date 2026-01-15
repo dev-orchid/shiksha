@@ -9,11 +9,44 @@ import {
   TrendingUp,
   TrendingDown,
   Calendar,
+  AlertTriangle,
+  AlertCircle,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
+import { getStudentLimitWarning, getAdminUserLimitWarning } from '@/lib/utils/plan-features'
+import type { PlanType } from '@/lib/constants/plans'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'Dashboard | School Management System',
+}
+
+async function getSchoolPlanInfo(schoolId: string) {
+  const supabase = await createClient()
+
+  // Fetch school plan information
+  const { data: school } = await supabase
+    .from('schools')
+    .select('plan_type, student_limit, admin_user_limit')
+    .eq('id', schoolId)
+    .single()
+
+  if (!school) {
+    return null
+  }
+
+  // Fetch current usage
+  const { data: usageData } = await supabase
+    .rpc('get_school_current_usage', { p_school_id: schoolId })
+    .single()
+
+  return {
+    planType: school.plan_type as PlanType,
+    studentLimit: school.student_limit,
+    adminUserLimit: school.admin_user_limit,
+    currentStudents: usageData?.active_students || 0,
+    currentAdminUsers: usageData?.admin_users || 0,
+  }
 }
 
 async function getDashboardStats(schoolId: string) {
@@ -147,7 +180,17 @@ export default async function DashboardPage() {
   const authUser = await getAuthenticatedUserSchool()
 
   if (!authUser) {
-    redirect('/auth/login')
+    redirect('/login')
+  }
+
+  // Redirect super admins to their dedicated dashboard
+  if (authUser.role === 'super_admin' && !authUser.schoolId) {
+    redirect('/super-admin')
+  }
+
+  // At this point, we know the user has a schoolId
+  if (!authUser.schoolId) {
+    redirect('/login')
   }
 
   const supabase = await createClient()
@@ -161,6 +204,24 @@ export default async function DashboardPage() {
     || 'User'
 
   const dashboardData = await getDashboardStats(authUser.schoolId)
+  const planInfo = await getSchoolPlanInfo(authUser.schoolId)
+
+  // Get usage warnings
+  const studentWarning = planInfo
+    ? getStudentLimitWarning(
+        planInfo.planType,
+        planInfo.currentStudents,
+        planInfo.studentLimit
+      )
+    : null
+
+  const adminUserWarning = planInfo
+    ? getAdminUserLimitWarning(
+        planInfo.planType,
+        planInfo.currentAdminUsers,
+        planInfo.adminUserLimit
+      )
+    : null
 
   const stats = [
     {
@@ -204,6 +265,130 @@ export default async function DashboardPage() {
           Here&apos;s what&apos;s happening at your school today.
         </p>
       </div>
+
+      {/* Usage Warnings */}
+      {(studentWarning || adminUserWarning) && (
+        <div className="space-y-3">
+          {studentWarning && (
+            <div
+              className={`flex items-start gap-3 p-4 rounded-lg border ${
+                studentWarning.severity === 'error'
+                  ? 'bg-red-50 border-red-200'
+                  : studentWarning.severity === 'critical'
+                  ? 'bg-orange-50 border-orange-200'
+                  : 'bg-yellow-50 border-yellow-200'
+              }`}
+            >
+              {studentWarning.severity === 'error' || studentWarning.severity === 'critical' ? (
+                <AlertCircle
+                  className={`h-5 w-5 mt-0.5 ${
+                    studentWarning.severity === 'error'
+                      ? 'text-red-600'
+                      : 'text-orange-600'
+                  }`}
+                />
+              ) : (
+                <AlertTriangle className="h-5 w-5 mt-0.5 text-yellow-600" />
+              )}
+              <div className="flex-1">
+                <p
+                  className={`font-medium ${
+                    studentWarning.severity === 'error'
+                      ? 'text-red-800'
+                      : studentWarning.severity === 'critical'
+                      ? 'text-orange-800'
+                      : 'text-yellow-800'
+                  }`}
+                >
+                  {studentWarning.message}
+                </p>
+                <p
+                  className={`text-sm mt-1 ${
+                    studentWarning.severity === 'error'
+                      ? 'text-red-700'
+                      : studentWarning.severity === 'critical'
+                      ? 'text-orange-700'
+                      : 'text-yellow-700'
+                  }`}
+                >
+                  Current: {planInfo?.currentStudents} / Limit: {planInfo?.studentLimit}
+                </p>
+              </div>
+              <Link
+                href="/settings/plan"
+                className={`text-sm font-medium underline ${
+                  studentWarning.severity === 'error'
+                    ? 'text-red-700 hover:text-red-800'
+                    : studentWarning.severity === 'critical'
+                    ? 'text-orange-700 hover:text-orange-800'
+                    : 'text-yellow-700 hover:text-yellow-800'
+                }`}
+              >
+                Upgrade Plan
+              </Link>
+            </div>
+          )}
+          {adminUserWarning && (
+            <div
+              className={`flex items-start gap-3 p-4 rounded-lg border ${
+                adminUserWarning.severity === 'error'
+                  ? 'bg-red-50 border-red-200'
+                  : adminUserWarning.severity === 'critical'
+                  ? 'bg-orange-50 border-orange-200'
+                  : 'bg-yellow-50 border-yellow-200'
+              }`}
+            >
+              {adminUserWarning.severity === 'error' || adminUserWarning.severity === 'critical' ? (
+                <AlertCircle
+                  className={`h-5 w-5 mt-0.5 ${
+                    adminUserWarning.severity === 'error'
+                      ? 'text-red-600'
+                      : 'text-orange-600'
+                  }`}
+                />
+              ) : (
+                <AlertTriangle className="h-5 w-5 mt-0.5 text-yellow-600" />
+              )}
+              <div className="flex-1">
+                <p
+                  className={`font-medium ${
+                    adminUserWarning.severity === 'error'
+                      ? 'text-red-800'
+                      : adminUserWarning.severity === 'critical'
+                      ? 'text-orange-800'
+                      : 'text-yellow-800'
+                  }`}
+                >
+                  {adminUserWarning.message}
+                </p>
+                <p
+                  className={`text-sm mt-1 ${
+                    adminUserWarning.severity === 'error'
+                      ? 'text-red-700'
+                      : adminUserWarning.severity === 'critical'
+                      ? 'text-orange-700'
+                      : 'text-yellow-700'
+                  }`}
+                >
+                  Current: {planInfo?.currentAdminUsers} / Limit: {planInfo?.adminUserLimit}
+                </p>
+              </div>
+              <Link
+                href="/settings/plan"
+                className={`text-sm font-medium underline ${
+                  adminUserWarning.severity === 'error'
+                    ? 'text-red-700 hover:text-red-800'
+                    : adminUserWarning.severity === 'critical'
+                    ? 'text-orange-700 hover:text-orange-800'
+                    : 'text-yellow-700 hover:text-yellow-800'
+                }`}
+              >
+                Upgrade Plan
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

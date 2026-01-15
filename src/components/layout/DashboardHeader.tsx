@@ -12,6 +12,7 @@ import {
   User,
   Settings,
   LogOut,
+  Shield,
 } from 'lucide-react'
 
 interface DashboardHeaderProps {
@@ -24,6 +25,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false)
 
   const roleLabel = profile?.role ? ROLE_LABELS[profile.role as keyof typeof ROLE_LABELS] : ''
+  const isSuperAdmin = profile?.role === 'super_admin' && !profile?.schoolId
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
@@ -37,14 +39,21 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* School name */}
-          {profile?.schoolName && (
+          {/* School name or Super Admin indicator */}
+          {isSuperAdmin ? (
+            <div className="hidden sm:flex items-center gap-2">
+              <Shield className="h-4 w-4 text-purple-600" />
+              <span className="text-sm font-medium text-purple-700">
+                Super Admin Mode
+              </span>
+            </div>
+          ) : profile?.schoolName ? (
             <div className="hidden sm:block">
               <span className="text-sm font-medium text-gray-900">
                 {profile.schoolName}
               </span>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Right side */}

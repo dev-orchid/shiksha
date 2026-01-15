@@ -11,6 +11,12 @@ interface UserProfile {
   role: string
   schoolId: string | null
   schoolName: string | null
+  // Plan information
+  planType?: string
+  studentLimit?: number
+  adminUserLimit?: number
+  currentStudents?: number
+  currentAdminUsers?: number
 }
 
 interface SessionContextType {
@@ -18,6 +24,7 @@ interface SessionContextType {
   profile: UserProfile | null
   loading: boolean
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const SessionContext = createContext<SessionContextType>({
@@ -25,6 +32,7 @@ const SessionContext = createContext<SessionContextType>({
   profile: null,
   loading: true,
   signOut: async () => {},
+  refreshProfile: async () => {},
 })
 
 export function useSession() {
@@ -43,57 +51,37 @@ export function SessionProvider({ children }: SessionProviderProps) {
   useEffect(() => {
     const supabase = getSupabaseClient()
 
+    // Fetch profile via API endpoint to bypass RLS issues
+    // (super_admin users have school_id = NULL which may block RLS queries)
     const fetchProfile = async (authUser: User) => {
-      // Fetch user profile
-      const { data } = await supabase
-        .from('users')
-        .select('id, email, role, school_id')
-        .eq('id', authUser.id)
-        .single()
-
-      const userData = data as { id: string; email: string; role: string; school_id: string | null } | null
-
-      // Get school_id from user record or fallback to auth metadata
-      const schoolId = userData?.school_id || authUser.user_metadata?.school_id || null
-
-      // Fetch school name separately if we have a school_id
-      let schoolName: string | null = null
-      if (schoolId) {
-        const { data: schoolData } = await supabase
-          .from('schools')
-          .select('name')
-          .eq('id', schoolId)
-          .single()
-        schoolName = (schoolData as { name: string } | null)?.name ?? null
+      try {
+        const response = await fetch('/api/auth/profile')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.profile) {
+            setProfile(data.profile)
+            return
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile via API:', error)
       }
 
-      // Get display name from user metadata, fall back to email prefix
+      // Fallback to user_metadata if API fails
       const displayName = authUser.user_metadata?.display_name
         || authUser.user_metadata?.full_name
         || authUser.user_metadata?.name
         || authUser.email?.split('@')[0]
         || 'User'
 
-      if (userData) {
-        setProfile({
-          id: userData.id,
-          email: userData.email,
-          displayName: displayName,
-          role: userData.role,
-          schoolId: schoolId,
-          schoolName: schoolName,
-        })
-      } else {
-        // Fallback to user_metadata if user record doesn't exist yet
-        setProfile({
-          id: authUser.id,
-          email: authUser.email || '',
-          displayName: displayName,
-          role: authUser.user_metadata?.role || 'user',
-          schoolId: schoolId,
-          schoolName: schoolName,
-        })
-      }
+      setProfile({
+        id: authUser.id,
+        email: authUser.email || '',
+        displayName: displayName,
+        role: authUser.user_metadata?.role || 'user',
+        schoolId: authUser.user_metadata?.school_id || null,
+        schoolName: null,
+      })
     }
 
     // Get initial session
@@ -129,8 +117,24 @@ export function SessionProvider({ children }: SessionProviderProps) {
     window.location.href = '/login'
   }
 
+  const refreshProfile = async () => {
+    if (!user) return
+
+    try {
+      const response = await fetch('/api/auth/profile')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.profile) {
+          setProfile(data.profile)
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing profile:', error)
+    }
+  }
+
   return (
-    <SessionContext.Provider value={{ user, profile, loading, signOut }}>
+    <SessionContext.Provider value={{ user, profile, loading, signOut, refreshProfile }}>
       {children}
     </SessionContext.Provider>
   )

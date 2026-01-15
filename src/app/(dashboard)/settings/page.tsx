@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { useSession } from '@/components/providers/SessionProvider'
 import {
   School,
   Calendar,
@@ -13,6 +14,10 @@ import {
   Database,
   Palette,
   Building2,
+  User,
+  Globe,
+  CreditCard,
+  Settings2,
 } from 'lucide-react'
 
 interface SchoolData {
@@ -33,7 +38,8 @@ interface Stats {
   activeUsers: number
 }
 
-const settingsSections = [
+// School admin settings
+const schoolSettingsSections = [
   {
     title: 'School Profile',
     description: 'Update school information, logo, and contact details',
@@ -99,7 +105,47 @@ const settingsSections = [
   },
 ]
 
+// Super admin settings
+const superAdminSettingsSections = [
+  {
+    title: 'My Profile',
+    description: 'Update your personal information and preferences',
+    icon: User,
+    href: '/settings/profile',
+    color: 'bg-blue-100 text-blue-600',
+  },
+  {
+    title: 'Platform Settings',
+    description: 'Configure global platform settings',
+    icon: Globe,
+    href: '/super-admin/settings/platform',
+    color: 'bg-purple-100 text-purple-600',
+  },
+  {
+    title: 'Billing & Plans',
+    description: 'Manage pricing plans and billing configuration',
+    icon: CreditCard,
+    href: '/super-admin/settings/billing',
+    color: 'bg-green-100 text-green-600',
+  },
+  {
+    title: 'Security',
+    description: 'Platform security and access settings',
+    icon: Shield,
+    href: '/settings/security',
+    color: 'bg-gray-100 text-gray-600',
+  },
+  {
+    title: 'System Configuration',
+    description: 'Advanced system settings and maintenance',
+    icon: Settings2,
+    href: '/super-admin/settings/system',
+    color: 'bg-orange-100 text-orange-600',
+  },
+]
+
 export default function SettingsPage() {
+  const { profile } = useSession()
   const [school, setSchool] = useState<SchoolData | null>(null)
   const [academicYear, setAcademicYear] = useState<AcademicYear | null>(null)
   const [stats, setStats] = useState<Stats>({
@@ -109,9 +155,15 @@ export default function SettingsPage() {
   })
   const [loading, setLoading] = useState(true)
 
+  const isSuperAdmin = profile?.role === 'super_admin' && !profile?.schoolId
+
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (!isSuperAdmin) {
+      fetchData()
+    } else {
+      setLoading(false)
+    }
+  }, [isSuperAdmin])
 
   const fetchData = async () => {
     try {
@@ -149,12 +201,18 @@ export default function SettingsPage() {
     }
   }
 
+  const settingsSections = isSuperAdmin ? superAdminSettingsSections : schoolSettingsSections
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500 mt-1">Manage your school settings and preferences</p>
+        <p className="text-gray-500 mt-1">
+          {isSuperAdmin
+            ? 'Manage platform settings and your preferences'
+            : 'Manage your school settings and preferences'}
+        </p>
       </div>
 
       {/* Settings Grid */}
@@ -178,46 +236,73 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {/* Quick Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>System Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : (
+      {/* Quick Info - Only show for school admins */}
+      {!isSuperAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>System Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-sm text-gray-500">School Code</p>
+                  <p className="font-medium text-gray-900">{school?.code || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Current Academic Year</p>
+                  <p className="font-medium text-gray-900">{academicYear?.name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">School Name</p>
+                  <p className="font-medium text-gray-900">{school?.name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Total Students</p>
+                  <p className="font-medium text-gray-900">{stats.totalStudents.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Total Staff</p>
+                  <p className="font-medium text-gray-900">{stats.totalStaff.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">System Status</p>
+                  <p className="font-medium text-green-600">Active</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Super Admin Info */}
+      {isSuperAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Super Admin Information</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <p className="text-sm text-gray-500">School Code</p>
-                <p className="font-medium text-gray-900">{school?.code || '-'}</p>
+                <p className="text-sm text-gray-500">Role</p>
+                <p className="font-medium text-purple-600">Super Admin</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Current Academic Year</p>
-                <p className="font-medium text-gray-900">{academicYear?.name || '-'}</p>
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="font-medium text-gray-900">{profile?.email || '-'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">School Name</p>
-                <p className="font-medium text-gray-900">{school?.name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Students</p>
-                <p className="font-medium text-gray-900">{stats.totalStudents.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Staff</p>
-                <p className="font-medium text-gray-900">{stats.totalStaff.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">System Status</p>
-                <p className="font-medium text-green-600">Active</p>
+                <p className="text-sm text-gray-500">Access Level</p>
+                <p className="font-medium text-gray-900">All Schools</p>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

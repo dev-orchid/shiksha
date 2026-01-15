@@ -1,3 +1,15 @@
 {
-  "/page": "app/page.js"
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
+  "/(dashboard)/settings/profile/page": "app/(dashboard)/settings/profile/page.js",
+  "/(dashboard)/super-admin/page": "app/(dashboard)/super-admin/page.js",
+  "/(dashboard)/super-admin/settings/platform/page": "app/(dashboard)/super-admin/settings/platform/page.js",
+  "/(dashboard)/super-admin/settings/system/page": "app/(dashboard)/super-admin/settings/system/page.js",
+  "/api/academic-years/route": "app/api/academic-years/route.js",
+  "/api/auth/profile/route": "app/api/auth/profile/route.js",
+  "/api/settings/school/route": "app/api/settings/school/route.js",
+  "/api/staff/route": "app/api/staff/route.js",
+  "/api/students/route": "app/api/students/route.js",
+  "/api/super-admin/schools/route": "app/api/super-admin/schools/route.js"
 }

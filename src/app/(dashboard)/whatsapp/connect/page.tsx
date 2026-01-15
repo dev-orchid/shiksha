@@ -153,9 +153,10 @@ export default function WhatsAppConnectPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
+    
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
         <Link href="/whatsapp">
           <Button variant="outline" size="sm" icon={<ArrowLeft className="h-4 w-4" />}>
             Back
@@ -381,5 +382,6 @@ export default function WhatsAppConnectPage() {
         </CardContent>
       </Card>
     </div>
+    
   )
 }

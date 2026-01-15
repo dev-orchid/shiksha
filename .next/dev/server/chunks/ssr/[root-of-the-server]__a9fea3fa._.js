@@ -72,8 +72,32 @@ var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$g
 ;
 ;
 const metadata = {
-    title: "School Management System",
-    description: "Comprehensive School Management System for Manas International Public School"
+    title: "Shiksha - School Management System | Orchid Software",
+    description: "Transform education management into digital excellence. Comprehensive cloud-based School Management System for student management, attendance, fees, exams, and WhatsApp integration. From 100 to 10,000+ students.",
+    openGraph: {
+        title: "Shiksha - School Management System",
+        description: "Streamline administrative operations, enhance communication, and improve efficiency with our comprehensive cloud-based School Management System.",
+        url: "https://shiksha.orchidsw.com",
+        siteName: "Shiksha ERP",
+        images: [
+            {
+                url: "/shiksha-erp.jpg",
+                width: 1200,
+                height: 630,
+                alt: "Shiksha ERP - School Management System"
+            }
+        ],
+        locale: "en_US",
+        type: "website"
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Shiksha - School Management System",
+        description: "Transform Education Management Into Digital Excellence. Comprehensive cloud-based School Management System for modern schools.",
+        images: [
+            "/shiksha-erp.jpg"
+        ]
+    }
 };
 function RootLayout({ children }) {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])("html", {
@@ -83,12 +107,12 @@ function RootLayout({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/src/app/layout.tsx",
-            lineNumber: 27,
+            lineNumber: 49,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/layout.tsx",
-        lineNumber: 26,
+        lineNumber: 48,
         columnNumber: 5
     }, this);
 }

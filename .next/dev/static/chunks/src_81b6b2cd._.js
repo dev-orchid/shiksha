@@ -48,7 +48,8 @@ const SessionContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proj
     user: null,
     profile: null,
     loading: true,
-    signOut: async ()=>{}
+    signOut: async ()=>{},
+    refreshProfile: async ()=>{}
 });
 function useSession() {
     _s();
@@ -63,41 +64,32 @@ function SessionProvider({ children }) {
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "SessionProvider.useEffect": ()=>{
             const supabase = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getSupabaseClient"])();
+            // Fetch profile via API endpoint to bypass RLS issues
+            // (super_admin users have school_id = NULL which may block RLS queries)
             const fetchProfile = {
                 "SessionProvider.useEffect.fetchProfile": async (authUser)=>{
-                    // Fetch user profile
-                    const { data } = await supabase.from('users').select('id, email, role, school_id').eq('id', authUser.id).single();
-                    const userData = data;
-                    // Get school_id from user record or fallback to auth metadata
-                    const schoolId = userData?.school_id || authUser.user_metadata?.school_id || null;
-                    // Fetch school name separately if we have a school_id
-                    let schoolName = null;
-                    if (schoolId) {
-                        const { data: schoolData } = await supabase.from('schools').select('name').eq('id', schoolId).single();
-                        schoolName = schoolData?.name ?? null;
+                    try {
+                        const response = await fetch('/api/auth/profile');
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.profile) {
+                                setProfile(data.profile);
+                                return;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error fetching profile via API:', error);
                     }
-                    // Get display name from user metadata, fall back to email prefix
+                    // Fallback to user_metadata if API fails
                     const displayName = authUser.user_metadata?.display_name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User';
-                    if (userData) {
-                        setProfile({
-                            id: userData.id,
-                            email: userData.email,
-                            displayName: displayName,
-                            role: userData.role,
-                            schoolId: schoolId,
-                            schoolName: schoolName
-                        });
-                    } else {
-                        // Fallback to user_metadata if user record doesn't exist yet
-                        setProfile({
-                            id: authUser.id,
-                            email: authUser.email || '',
-                            displayName: displayName,
-                            role: authUser.user_metadata?.role || 'user',
-                            schoolId: schoolId,
-                            schoolName: schoolName
-                        });
-                    }
+                    setProfile({
+                        id: authUser.id,
+                        email: authUser.email || '',
+                        displayName: displayName,
+                        role: authUser.user_metadata?.role || 'user',
+                        schoolId: authUser.user_metadata?.school_id || null,
+                        schoolName: null
+                    });
                 }
             }["SessionProvider.useEffect.fetchProfile"];
             // Get initial session
@@ -134,17 +126,32 @@ function SessionProvider({ children }) {
         await supabase.auth.signOut();
         window.location.href = '/login';
     };
+    const refreshProfile = async ()=>{
+        if (!user) return;
+        try {
+            const response = await fetch('/api/auth/profile');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.profile) {
+                    setProfile(data.profile);
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing profile:', error);
+        }
+    };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(SessionContext.Provider, {
         value: {
             user,
             profile,
             loading,
-            signOut
+            signOut,
+            refreshProfile
         },
         children: children
     }, void 0, false, {
         fileName: "[project]/src/components/providers/SessionProvider.tsx",
-        lineNumber: 133,
+        lineNumber: 137,
         columnNumber: 5
     }, this);
 }
