@@ -17,9 +17,12 @@ export async function GET() {
     // which may cause RLS policies to block them from reading their own record
     const adminClient = createAdminClient()
 
+    // Define the user data type
+    type UserData = { id: string; email: string; role: string; school_id: string | null }
+
     // First try to fetch user profile by ID
-    let userData: { id: string; email: string; role: string; school_id: string | null } | null = null
-    let { data: userById, error: userError } = await adminClient
+    let userData: UserData | null = null
+    const { data: userById, error: userError } = await adminClient
       .from('users')
       .select('id, email, role, school_id')
       .eq('id', user.id)
@@ -38,9 +41,9 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
       }
 
-      userData = userByEmail as typeof userData
+      userData = userByEmail as unknown as UserData
     } else {
-      userData = userById as typeof userData
+      userData = userById as unknown as UserData
     }
 
     if (!userData) {
@@ -79,10 +82,9 @@ export async function GET() {
       studentLimit = (schoolData as any)?.student_limit
       adminUserLimit = (schoolData as any)?.admin_user_limit
 
-      // Fetch current usage stats
-      const { data: usageData } = await adminClient
-        .rpc('get_school_current_usage', { p_school_id: schoolId })
-        .single()
+      // Fetch current usage stats - use type assertion for custom RPC function
+      const rpcClient = adminClient as unknown as { rpc: (fn: string, params: { p_school_id: string }) => { single: () => Promise<{ data: { active_students: number; admin_users: number } | null }> } }
+      const { data: usageData } = await rpcClient.rpc('get_school_current_usage', { p_school_id: schoolId }).single()
 
       currentStudents = (usageData as any)?.active_students || 0
       currentAdminUsers = (usageData as any)?.admin_users || 0

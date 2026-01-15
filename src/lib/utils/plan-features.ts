@@ -36,7 +36,7 @@ export function isWithinAdminUserLimit(schoolPlan: SchoolPlan): boolean {
  */
 export function getStudentLimitWarning(schoolPlan: SchoolPlan): {
   show: boolean
-  level: 'warning' | 'critical'
+  severity: 'warning' | 'critical' | 'error'
   message: string
 } | null {
   const usagePercent = (schoolPlan.currentStudents / schoolPlan.studentLimit) * 100
@@ -44,13 +44,19 @@ export function getStudentLimitWarning(schoolPlan: SchoolPlan): {
   if (usagePercent >= 100) {
     return {
       show: true,
-      level: 'critical',
+      severity: 'error',
       message: `You've reached your student limit (${schoolPlan.studentLimit}). Please upgrade your plan to add more students.`,
+    }
+  } else if (usagePercent >= 95) {
+    return {
+      show: true,
+      severity: 'critical',
+      message: `You're almost at your student limit (${schoolPlan.currentStudents}/${schoolPlan.studentLimit}). Upgrade soon.`,
     }
   } else if (usagePercent >= 90) {
     return {
       show: true,
-      level: 'warning',
+      severity: 'warning',
       message: `You're approaching your student limit (${schoolPlan.currentStudents}/${schoolPlan.studentLimit}). Consider upgrading your plan.`,
     }
   }
@@ -63,7 +69,7 @@ export function getStudentLimitWarning(schoolPlan: SchoolPlan): {
  */
 export function getAdminUserLimitWarning(schoolPlan: SchoolPlan): {
   show: boolean
-  level: 'warning' | 'critical'
+  severity: 'warning' | 'critical' | 'error'
   message: string
 } | null {
   const usagePercent = (schoolPlan.currentAdminUsers / schoolPlan.adminUserLimit) * 100
@@ -71,13 +77,19 @@ export function getAdminUserLimitWarning(schoolPlan: SchoolPlan): {
   if (usagePercent >= 100) {
     return {
       show: true,
-      level: 'critical',
+      severity: 'error',
       message: `You've reached your admin user limit (${schoolPlan.adminUserLimit}). Please upgrade your plan to add more users.`,
+    }
+  } else if (usagePercent >= 90) {
+    return {
+      show: true,
+      severity: 'critical',
+      message: `You're almost at your admin user limit (${schoolPlan.currentAdminUsers}/${schoolPlan.adminUserLimit}). Upgrade soon.`,
     }
   } else if (usagePercent >= 80) {
     return {
       show: true,
-      level: 'warning',
+      severity: 'warning',
       message: `You're approaching your admin user limit (${schoolPlan.currentAdminUsers}/${schoolPlan.adminUserLimit}). Consider upgrading your plan.`,
     }
   }

@@ -35,19 +35,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid plan type' }, { status: 400 })
     }
 
-    // Create upgrade request
-    const { data, error } = await supabase
-      .from('plan_upgrade_requests')
-      .insert({
-        school_id: authUser.schoolId,
-        requested_plan,
-        contact_person,
-        contact_phone,
-        contact_email,
-        additional_notes: additional_notes || null,
-        status: 'pending',
-        requested_by: authUser.id,
-      })
+    // Create upgrade request - cast to any to bypass type check for untyped table
+    const insertData = {
+      school_id: authUser.schoolId,
+      requested_plan,
+      contact_person,
+      contact_phone,
+      contact_email,
+      additional_notes: additional_notes || null,
+      status: 'pending',
+      requested_by: authUser.userId,
+    }
+    const { data, error } = await (supabase
+      .from('plan_upgrade_requests') as any)
+      .insert(insertData)
       .select()
       .single()
 
@@ -84,11 +85,15 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    let query = supabase
-      .from('plan_upgrade_requests')
+    let query = (supabase
+      .from('plan_upgrade_requests') as any)
       .select('*')
-      .eq('school_id', authUser.schoolId)
       .order('created_at', { ascending: false })
+
+    // Filter by school_id if user is not super_admin
+    if (authUser.schoolId) {
+      query = query.eq('school_id', authUser.schoolId)
+    }
 
     if (status) {
       query = query.eq('status', status)

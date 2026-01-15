@@ -327,17 +327,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Create parent accounts if provided
+    // Create parent accounts if provided (only for school admins with schoolId)
     const parentAccounts: Array<{ relation: string; email?: string; password?: string }> = []
 
-    if (father && father.name) {
+    if (authUser.schoolId && father && father.name) {
       const result = await createParentAccount(supabase, father, authUser.schoolId, data.id)
       if (result.success && result.email && result.password) {
         parentAccounts.push({ relation: 'Father', email: result.email, password: result.password })
       }
     }
 
-    if (mother && mother.name) {
+    if (authUser.schoolId && mother && mother.name) {
       const result = await createParentAccount(supabase, mother, authUser.schoolId, data.id)
       if (result.success && result.email && result.password) {
         parentAccounts.push({ relation: 'Mother', email: result.email, password: result.password })

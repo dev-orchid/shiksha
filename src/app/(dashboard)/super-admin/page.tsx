@@ -163,7 +163,7 @@ export default function SuperAdminDashboard() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <Badge variant={school.is_active ? 'success' : 'secondary'}>
+                        <Badge variant={school.is_active ? 'success' : 'default'}>
                           {school.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>

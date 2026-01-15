@@ -155,10 +155,11 @@ export async function GET(
       return NextResponse.json({ error: schoolError.message }, { status: 404 })
     }
 
-    // Get usage stats
-    const { data: usageData } = await supabase
+    // Get usage stats - type cast for untyped RPC
+    type UsageData = { active_students: number; admin_users: number }
+    const { data: usageData } = await (supabase as any)
       .rpc('get_school_current_usage', { p_school_id: schoolId })
-      .single()
+      .single() as { data: UsageData | null }
 
     return NextResponse.json({
       ...school,

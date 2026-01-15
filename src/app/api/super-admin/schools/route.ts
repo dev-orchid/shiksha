@@ -27,12 +27,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: schoolsError.message }, { status: 500 })
     }
 
-    // Fetch usage stats for each school
+    // Fetch usage stats for each school - type cast for untyped RPC
+    type UsageData = { active_students: number; admin_users: number }
     const schoolsWithUsage = await Promise.all(
       (schools || []).map(async (school) => {
-        const { data: usageData } = await supabase
+        const { data: usageData } = await (supabase as any)
           .rpc('get_school_current_usage', { p_school_id: school.id })
-          .single()
+          .single() as { data: UsageData | null }
 
         return {
           ...school,

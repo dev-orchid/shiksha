@@ -21,6 +21,17 @@ export const metadata = {
   title: 'Dashboard | School Management System',
 }
 
+interface SchoolPlanData {
+  plan_type: string
+  student_limit: number
+  admin_user_limit: number
+}
+
+interface SchoolUsageData {
+  active_students: number
+  admin_users: number
+}
+
 async function getSchoolPlanInfo(schoolId: string) {
   const supabase = await createClient()
 
@@ -31,19 +42,19 @@ async function getSchoolPlanInfo(schoolId: string) {
     .eq('id', schoolId)
     .single()
 
-  if (!school) {
+  const schoolData = school as unknown as SchoolPlanData | null
+  if (!schoolData) {
     return null
   }
 
-  // Fetch current usage
-  const { data: usageData } = await supabase
-    .rpc('get_school_current_usage', { p_school_id: schoolId })
-    .single()
+  // Fetch current usage - use type assertion for custom RPC function
+  const rpcClient = supabase as unknown as { rpc: (fn: string, params: { p_school_id: string }) => { single: () => Promise<{ data: SchoolUsageData | null }> } }
+  const { data: usageData } = await rpcClient.rpc('get_school_current_usage', { p_school_id: schoolId }).single()
 
   return {
-    planType: school.plan_type as PlanType,
-    studentLimit: school.student_limit,
-    adminUserLimit: school.admin_user_limit,
+    planType: schoolData.plan_type as PlanType,
+    studentLimit: schoolData.student_limit,
+    adminUserLimit: schoolData.admin_user_limit,
     currentStudents: usageData?.active_students || 0,
     currentAdminUsers: usageData?.admin_users || 0,
   }
@@ -208,19 +219,11 @@ export default async function DashboardPage() {
 
   // Get usage warnings
   const studentWarning = planInfo
-    ? getStudentLimitWarning(
-        planInfo.planType,
-        planInfo.currentStudents,
-        planInfo.studentLimit
-      )
+    ? getStudentLimitWarning(planInfo)
     : null
 
   const adminUserWarning = planInfo
-    ? getAdminUserLimitWarning(
-        planInfo.planType,
-        planInfo.currentAdminUsers,
-        planInfo.adminUserLimit
-      )
+    ? getAdminUserLimitWarning(planInfo)
     : null
 
   const stats = [

@@ -36,10 +36,11 @@ export async function GET(
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
 
-    // Fetch usage stats
-    const { data: usageData } = await supabase
+    // Fetch usage stats - type cast for untyped RPC
+    type UsageData = { active_students: number; admin_users: number }
+    const { data: usageData } = await (supabase as any)
       .rpc('get_school_current_usage', { p_school_id: schoolId })
-      .single()
+      .single() as { data: UsageData | null }
 
     // Fetch additional stats
     const { count: teachersCount } = await supabase

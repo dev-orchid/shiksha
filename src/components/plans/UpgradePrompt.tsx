@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { Lock } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
 import { FEATURE_NAMES, FEATURE_DESCRIPTIONS, PLANS, type PlanFeature } from '@/lib/constants/plans'
 
 interface UpgradePromptProps {
@@ -46,12 +45,18 @@ export function UpgradePrompt({ feature }: UpgradePromptProps) {
           </div>
 
           <div className="flex gap-3">
-            <Button asChild className="flex-1">
-              <Link href="/settings/plan">View Plans & Upgrade</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/dashboard">Back to Dashboard</Link>
-            </Button>
+            <Link
+              href="/settings/plan"
+              className="flex-1 inline-flex items-center justify-center font-medium rounded-lg transition-colors bg-primary text-white hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary px-4 py-2 text-sm"
+            >
+              View Plans & Upgrade
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center font-medium rounded-lg transition-colors border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary px-4 py-2 text-sm"
+            >
+              Back to Dashboard
+            </Link>
           </div>
         </CardContent>
       </Card>

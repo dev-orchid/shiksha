@@ -81,9 +81,9 @@ export default function EditSchoolPlanPage() {
     setFormData({
       ...formData,
       plan_type: planType,
-      student_limit: plan.studentLimit,
-      admin_user_limit: plan.adminUserLimit,
-      price_per_student: plan.pricePerStudent,
+      student_limit: plan.maxStudents || 999999,
+      admin_user_limit: plan.maxAdminUsers || 999999,
+      price_per_student: plan.price,
     })
   }
 
@@ -213,7 +213,7 @@ export default function EditSchoolPlanPage() {
                   >
                     <p className="font-medium">{plan.label}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {PLANS[plan.type as keyof typeof PLANS].studentLimit} students
+                      {PLANS[plan.type as keyof typeof PLANS].maxStudents || 'Unlimited'} students
                     </p>
                   </button>
                 ))}
@@ -313,20 +313,20 @@ export default function EditSchoolPlanPage() {
               <tbody>
                 <tr className="border-b">
                   <td className="py-2 px-4">Student Limit</td>
-                  <td className="text-center py-2 px-4">{PLANS.starter.studentLimit}</td>
-                  <td className="text-center py-2 px-4">{PLANS.professional.studentLimit}</td>
+                  <td className="text-center py-2 px-4">{PLANS.starter.maxStudents}</td>
+                  <td className="text-center py-2 px-4">{PLANS.professional.maxStudents}</td>
                   <td className="text-center py-2 px-4">Unlimited</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 px-4">Admin Users</td>
-                  <td className="text-center py-2 px-4">{PLANS.starter.adminUserLimit}</td>
-                  <td className="text-center py-2 px-4">{PLANS.professional.adminUserLimit}</td>
+                  <td className="text-center py-2 px-4">{PLANS.starter.maxAdminUsers}</td>
+                  <td className="text-center py-2 px-4">{PLANS.professional.maxAdminUsers}</td>
                   <td className="text-center py-2 px-4">Unlimited</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 px-4">Price per Student</td>
-                  <td className="text-center py-2 px-4">₹{PLANS.starter.pricePerStudent}</td>
-                  <td className="text-center py-2 px-4">₹{PLANS.professional.pricePerStudent}</td>
+                  <td className="text-center py-2 px-4">₹{PLANS.starter.price}</td>
+                  <td className="text-center py-2 px-4">₹{PLANS.professional.price}</td>
                   <td className="text-center py-2 px-4">Custom</td>
                 </tr>
               </tbody>

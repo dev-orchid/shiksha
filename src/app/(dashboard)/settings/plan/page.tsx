@@ -16,7 +16,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { useSession } from '@/components/providers/SessionProvider'
-import { PLANS, FEATURES, type PlanType } from '@/lib/constants/plans'
+import { PLANS, FEATURES, type PlanType, type PlanFeature } from '@/lib/constants/plans'
 import { PlanBadge } from '@/components/plans/PlanBadge'
 import { PlanUsageIndicator } from '@/components/plans/PlanUsageIndicator'
 import { hasFeature, getPlanDisplayName } from '@/lib/utils/plan-features'
@@ -114,7 +114,6 @@ export default function PlanSettingsPage() {
               current={profile?.currentStudents || 0}
               limit={profile?.studentLimit || 0}
               label="Students"
-              planType={currentPlanType as PlanType}
             />
           </CardContent>
         </Card>
@@ -131,7 +130,6 @@ export default function PlanSettingsPage() {
               current={profile?.currentAdminUsers || 0}
               limit={profile?.adminUserLimit || 0}
               label="Admin Users"
-              planType={currentPlanType as PlanType}
             />
           </CardContent>
         </Card>
@@ -223,7 +221,7 @@ export default function PlanSettingsPage() {
                 <h4 className="font-semibold text-gray-900 mb-3">{category}</h4>
                 <div className="space-y-2">
                   {featureKeys.map((featureKey) => {
-                    const feature = FEATURES[featureKey]
+                    const feature = FEATURES[featureKey as PlanFeature]
                     if (!feature) return null
 
                     return (
