@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
           id,
           amount,
           percentage,
-          salary_components (
+          salary_component:salary_components!salary_component_id (
             id,
             name,
             component_type,
@@ -70,11 +70,11 @@ export async function GET(request: NextRequest) {
       ...structure,
       components: structure.salary_structure_details?.map((detail: any) => ({
         id: detail.id,
-        componentId: detail.salary_components?.id,
-        name: detail.salary_components?.name,
-        type: detail.salary_components?.component_type,
-        isPercentage: detail.salary_components?.is_percentage,
-        isTaxable: detail.salary_components?.is_taxable,
+        componentId: detail.salary_component?.id,
+        name: detail.salary_component?.name,
+        type: detail.salary_component?.component_type,
+        isPercentage: detail.salary_component?.is_percentage,
+        isTaxable: detail.salary_component?.is_taxable,
         amount: detail.amount,
         percentage: detail.percentage,
       })) || [],

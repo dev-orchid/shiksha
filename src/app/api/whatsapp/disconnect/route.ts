@@ -5,6 +5,7 @@ import { whatsappClientManager } from '@/lib/whatsapp/client-manager'
 
 const disconnectSchema = z.object({
   school_id: z.string().uuid().optional(),
+  reset: z.boolean().optional(), // If true, completely delete session data
 })
 
 // POST - Disconnect WhatsApp
@@ -36,8 +37,15 @@ export async function POST(request: NextRequest) {
     // At this point schoolId is guaranteed to be a string
     const school_id = schoolId as string
 
-    // Disconnect the client
-    await whatsappClientManager.disconnectClient(school_id)
+    // Disconnect or reset the client
+    if (parsed.reset) {
+      // Full reset - deletes all session data
+      console.log(`[WhatsApp] Full reset requested for school: ${school_id}`)
+      await whatsappClientManager.forceFullReset(school_id)
+    } else {
+      // Normal disconnect
+      await whatsappClientManager.disconnectClient(school_id)
+    }
 
     // Update database
     const { error } = await supabase
@@ -56,7 +64,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'WhatsApp disconnected successfully',
+      message: parsed.reset
+        ? 'WhatsApp session reset successfully. Please scan QR code to reconnect.'
+        : 'WhatsApp disconnected successfully',
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

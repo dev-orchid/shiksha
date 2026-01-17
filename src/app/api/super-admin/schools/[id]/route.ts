@@ -44,10 +44,10 @@ export async function GET(
 
     // Fetch additional stats
     const { count: teachersCount } = await supabase
-      .from('teachers')
+      .from('staff')
       .select('*', { count: 'exact', head: true })
       .eq('school_id', schoolId)
-      .eq('is_active', true)
+      .eq('status', 'active')
 
     const { data: feesData } = await supabase
       .from('fee_payments')

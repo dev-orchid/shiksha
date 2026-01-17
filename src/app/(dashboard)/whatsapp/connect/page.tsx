@@ -20,11 +20,13 @@ import { useSession } from '@/components/providers/SessionProvider'
 interface ConnectionStatus {
   isConnected: boolean
   isInitializing?: boolean
+  needsReconnect?: boolean
   phoneNumber: string | null
   deviceName: string | null
   lastSeen: string | null
   batteryLevel: number | null
   qrCode?: string | null
+  message?: string
 }
 
 export default function WhatsAppConnectPage() {
@@ -129,15 +131,18 @@ export default function WhatsAppConnectPage() {
     }
   }
 
-  const disconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect WhatsApp?')) return
+  const disconnect = async (reset = false) => {
+    const message = reset
+      ? 'This will completely reset your WhatsApp session. You will need to scan the QR code again. Continue?'
+      : 'Are you sure you want to disconnect WhatsApp?'
+    if (!confirm(message)) return
 
     try {
       const schoolId = profile?.schoolId
       const response = await fetch('/api/whatsapp/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ school_id: schoolId }),
+        body: JSON.stringify({ school_id: schoolId, reset }),
       })
       if (response.ok) {
         setStatus(null)
@@ -231,27 +236,52 @@ export default function WhatsAppConnectPage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-wrap gap-2 pt-4">
                   <Button variant="outline" onClick={checkConnection} icon={<RefreshCw className="h-4 w-4" />}>
                     Refresh
                   </Button>
-                  <Button variant="outline" onClick={disconnect} className="text-red-600 hover:bg-red-50">
+                  <Button variant="outline" onClick={() => disconnect(false)} className="text-red-600 hover:bg-red-50">
                     Disconnect
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => disconnect(true)}
+                    className="text-orange-600 hover:bg-orange-50"
+                    title="Use this if messages are failing with sync errors"
+                  >
+                    Reset Session
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <XCircle className="h-6 w-6 text-yellow-600" />
-                  <div>
-                    <p className="font-medium text-yellow-800">Not Connected</p>
-                    <p className="text-sm text-yellow-600">Connect your WhatsApp to start messaging</p>
+                {status?.needsReconnect || status?.phoneNumber ? (
+                  <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertCircle className="h-6 w-6 text-amber-600" />
+                    <div>
+                      <p className="font-medium text-amber-800">Session Expired</p>
+                      <p className="text-sm text-amber-600">
+                        {status?.message || 'Your WhatsApp session has expired. Please reconnect by scanning the QR code.'}
+                      </p>
+                      {status?.phoneNumber && (
+                        <p className="text-sm text-amber-600 mt-1">
+                          Previous number: {status.phoneNumber}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <XCircle className="h-6 w-6 text-yellow-600" />
+                    <div>
+                      <p className="font-medium text-yellow-800">Not Connected</p>
+                      <p className="text-sm text-yellow-600">Connect your WhatsApp to start messaging</p>
+                    </div>
+                  </div>
+                )}
 
                 <Button onClick={startConnection} disabled={connecting} className="w-full">
-                  {connecting ? 'Connecting...' : 'Connect WhatsApp'}
+                  {connecting ? 'Connecting...' : status?.needsReconnect ? 'Reconnect WhatsApp' : 'Connect WhatsApp'}
                 </Button>
               </div>
             )}

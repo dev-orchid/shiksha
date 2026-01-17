@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -38,8 +38,17 @@ const CATEGORIES = [
   { value: 'announcement', label: 'Announcement' },
 ]
 
+const AVAILABLE_VARIABLES = [
+  '{{student_name}}',
+  '{{class}}',
+  '{{amount}}',
+  '{{date}}',
+  '{{school_name}}',
+]
+
 export default function WhatsAppTemplatesPage() {
   const { profile } = useSession()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -50,6 +59,24 @@ export default function WhatsAppTemplatesPage() {
     category: 'general',
     content: '',
   })
+
+  const insertVariable = (variable: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = formData.content
+    const newContent = text.substring(0, start) + variable + text.substring(end)
+
+    setFormData({ ...formData, content: newContent })
+
+    // Restore cursor position after the inserted variable
+    setTimeout(() => {
+      textarea.focus()
+      textarea.selectionStart = textarea.selectionEnd = start + variable.length
+    }, 0)
+  }
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true)
@@ -210,6 +237,7 @@ export default function WhatsAppTemplatesPage() {
                   Message Content
                 </label>
                 <textarea
+                  ref={textareaRef}
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   rows={5}
@@ -217,9 +245,19 @@ export default function WhatsAppTemplatesPage() {
                   placeholder="Enter message content. Use {{variable}} for dynamic content."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Available variables: {'{{student_name}}'}, {'{{class}}'}, {'{{amount}}'}, {'{{date}}'}, {'{{school_name}}'}
-                </p>
+                <div className="flex flex-wrap items-center gap-1 mt-2">
+                  <span className="text-xs text-gray-500">Available variables:</span>
+                  {AVAILABLE_VARIABLES.map((variable) => (
+                    <button
+                      key={variable}
+                      type="button"
+                      onClick={() => insertVariable(variable)}
+                      className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 cursor-pointer transition-colors"
+                    >
+                      {variable}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={saving} icon={<Save className="h-4 w-4" />}>

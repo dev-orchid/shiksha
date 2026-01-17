@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { z } from 'zod'
 
 const memberSchema = z.object({
@@ -20,16 +21,44 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const supabase = await createApiClient()
+    const authUser = await getAuthenticatedUserSchool()
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    // First try with is_active filter, then without
+    const { id } = await params
+    const supabase = createAdminClient()
+
+    // First verify the group belongs to the user's school
+    const { data: group, error: groupError } = await supabase
+      .from('whatsapp_groups')
+      .select('school_id')
+      .eq('id', id)
+      .single()
+
+    console.log('[Members API] Group lookup:', { id, group, groupError, authSchoolId: authUser.schoolId })
+
+    if (!group || group.school_id !== authUser.schoolId) {
+      return NextResponse.json({ error: 'Group not found' }, { status: 404 })
+    }
+
+    // Fetch members - try without any filters first to debug
     let { data, error } = await supabase
       .from('whatsapp_group_members')
       .select('*')
       .eq('group_id', id)
 
-    console.log('[Members API] Raw query result:', { data, error })
+    console.log('[Members API] Members query for group_id:', id)
+    console.log('[Members API] Raw query result:', { dataCount: data?.length, data, error })
+
+    // Debug: check if any members exist in the table at all
+    if (!data || data.length === 0) {
+      const { data: allMembers, error: allError } = await supabase
+        .from('whatsapp_group_members')
+        .select('id, group_id, student_id, phone_number')
+        .limit(10)
+      console.log('[Members API] Debug - All members in table:', { allMembers, allError })
+    }
 
     if (error) {
       // If table doesn't exist, return empty array
@@ -93,8 +122,25 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
-    const supabase = await createApiClient()
+    const supabase = createAdminClient()
+
+    // Verify the group belongs to the user's school
+    const { data: group } = await supabase
+      .from('whatsapp_groups')
+      .select('school_id')
+      .eq('id', id)
+      .single()
+
+    if (!group || group.school_id !== authUser.schoolId) {
+      return NextResponse.json({ error: 'Group not found' }, { status: 404 })
+    }
+
     const body = await request.json()
 
     // Check if bulk add or single add
@@ -108,8 +154,43 @@ export async function POST(
       membersToAdd = [validated]
     }
 
+    // Get existing members to check for duplicates
+    const { data: existingMembers } = await supabase
+      .from('whatsapp_group_members')
+      .select('student_id, phone_number')
+      .eq('group_id', id)
+
+    const existingStudentIds = new Set((existingMembers || []).filter(m => m.student_id).map(m => m.student_id))
+    // Only track phone numbers for custom members (those without student_id)
+    const existingCustomPhones = new Set(
+      (existingMembers || [])
+        .filter(m => !m.student_id && m.phone_number)
+        .map(m => m.phone_number)
+    )
+
+    // Filter out members that already exist
+    // For students: check by student_id (siblings with same phone are allowed)
+    // For custom: check by phone_number
+    const newMembers = membersToAdd.filter(member => {
+      if (member.student_id) {
+        // Student member - check by student_id only
+        return !existingStudentIds.has(member.student_id)
+      } else if (member.phone_number) {
+        // Custom member - check by phone_number
+        return !existingCustomPhones.has(member.phone_number)
+      }
+      return true
+    })
+
+    if (newMembers.length === 0) {
+      return NextResponse.json({
+        error: 'All selected members are already in this group',
+        alreadyExists: true
+      }, { status: 409 })
+    }
+
     // Prepare members for insertion
-    const insertData = membersToAdd.map(member => ({
+    const insertData = newMembers.map(member => ({
       group_id: id,
       member_type: member.member_type,
       student_id: member.student_id || null,
@@ -121,7 +202,6 @@ export async function POST(
 
     console.log('[Members API] Inserting members:', insertData)
 
-    // Use insert instead of upsert - the UI already filters out existing members
     const { data, error } = await supabase
       .from('whatsapp_group_members')
       .insert(insertData)
@@ -130,19 +210,14 @@ export async function POST(
     console.log('[Members API] Insert result:', { data, error })
 
     if (error) {
-      // Handle duplicate key error gracefully
-      if (error.code === '23505') {
-        return NextResponse.json({
-          error: 'Some members are already in this group',
-          details: error.message
-        }, { status: 409 })
-      }
+      console.error('[Members API] Insert error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    const skipped = membersToAdd.length - newMembers.length
     return NextResponse.json({
       data,
-      message: `${data?.length || 0} member(s) added successfully`
+      message: `${data?.length || 0} member(s) added successfully${skipped > 0 ? `, ${skipped} already existed` : ''}`
     }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -162,8 +237,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authUser = await getAuthenticatedUserSchool()
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id } = await params
-    const supabase = await createApiClient()
+    const supabase = createAdminClient()
+
+    // Verify the group belongs to the user's school
+    const { data: group } = await supabase
+      .from('whatsapp_groups')
+      .select('school_id')
+      .eq('id', id)
+      .single()
+
+    if (!group || group.school_id !== authUser.schoolId) {
+      return NextResponse.json({ error: 'Group not found' }, { status: 404 })
+    }
+
     const { searchParams } = new URL(request.url)
     const memberId = searchParams.get('member_id')
 

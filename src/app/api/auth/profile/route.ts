@@ -61,6 +61,11 @@ export async function GET() {
       || user.email?.split('@')[0]
       || 'User'
 
+    // Get phone and address from user metadata
+    const phone = user.user_metadata?.phone || null
+    const address = user.user_metadata?.address || null
+    const avatarUrl = user.user_metadata?.avatar_url || null
+
     // Fetch school info and plan details if we have a school_id
     let schoolName: string | null = null
     let planType: string | undefined
@@ -94,6 +99,9 @@ export async function GET() {
       id: userData.id,
       email: userData.email,
       displayName,
+      phone,
+      address,
+      avatarUrl,
       role: userData.role,
       schoolId,
       schoolName,

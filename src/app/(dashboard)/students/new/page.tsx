@@ -55,6 +55,7 @@ export default function AddStudentPage() {
     mother_create_account: false,
   })
   const [parentCredentials, setParentCredentials] = useState<Array<{ relation: string; email: string; password: string }> | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     fetchClasses()
@@ -298,14 +299,30 @@ export default function AddStudentPage() {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => {
+                onClick={async () => {
                   const text = parentCredentials.map(c =>
                     `${c.relation} Login:\nEmail: ${c.email}\nPassword: ${c.password}`
                   ).join('\n\n')
-                  navigator.clipboard.writeText(text)
+                  try {
+                    await navigator.clipboard.writeText(text)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  } catch {
+                    // Fallback for browsers that don't support clipboard API
+                    const textarea = document.createElement('textarea')
+                    textarea.value = text
+                    textarea.style.position = 'fixed'
+                    textarea.style.opacity = '0'
+                    document.body.appendChild(textarea)
+                    textarea.select()
+                    document.execCommand('copy')
+                    document.body.removeChild(textarea)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }
                 }}
               >
-                Copy Credentials
+                {copied ? 'Copied!' : 'Copy Credentials'}
               </Button>
               <Button
                 className="flex-1"

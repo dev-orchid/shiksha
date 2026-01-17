@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -17,6 +17,7 @@ import {
   Clock,
   RefreshCw,
 } from 'lucide-react'
+import { useSession } from '@/components/providers/SessionProvider'
 
 interface MessageLog {
   id: string
@@ -33,6 +34,7 @@ interface MessageLog {
 }
 
 export default function WhatsAppLogsPage() {
+  const { profile } = useSession()
   const [logs, setLogs] = useState<MessageLog[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
@@ -43,14 +45,12 @@ export default function WhatsAppLogsPage() {
     endDate: '',
   })
 
-  useEffect(() => {
-    fetchLogs()
-  }, [statusFilter, typeFilter])
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true)
     try {
+      const schoolId = profile?.schoolId
       let url = '/api/whatsapp/logs?'
+      if (schoolId) url += `school_id=${schoolId}&`
       if (statusFilter) url += `status=${statusFilter}&`
       if (typeFilter) url += `type=${typeFilter}&`
       if (dateRange.startDate) url += `start_date=${dateRange.startDate}&`
@@ -66,7 +66,11 @@ export default function WhatsAppLogsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [profile?.schoolId, statusFilter, typeFilter, dateRange.startDate, dateRange.endDate])
+
+  useEffect(() => {
+    fetchLogs()
+  }, [fetchLogs])
 
   const filteredLogs = logs.filter((log) => {
     if (!searchQuery) return true
@@ -80,7 +84,9 @@ export default function WhatsAppLogsPage() {
 
   const exportLogs = async () => {
     try {
+      const schoolId = profile?.schoolId
       let url = '/api/whatsapp/logs?export=csv'
+      if (schoolId) url += `&school_id=${schoolId}`
       if (statusFilter) url += `&status=${statusFilter}`
       if (typeFilter) url += `&type=${typeFilter}`
       if (dateRange.startDate) url += `&start_date=${dateRange.startDate}`

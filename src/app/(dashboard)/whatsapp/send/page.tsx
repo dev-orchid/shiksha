@@ -147,7 +147,7 @@ export default function SendMessagePage() {
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (response.ok && data.results?.successful > 0) {
         setSendResult({
           success: true,
           message: data.message || 'Message sent successfully!',
@@ -157,9 +157,20 @@ export default function SendMessagePage() {
         setPhoneNumber('')
         setSelectedTemplate('')
       } else {
+        // Get the actual error message from various possible locations
+        let errorMessage = data.error || data.message || 'Failed to send message'
+
+        // If there are detailed results, show the first error
+        if (data.results?.details?.length > 0) {
+          const firstError = data.results.details.find((d: { success: boolean; error?: string }) => !d.success)
+          if (firstError?.error) {
+            errorMessage = firstError.error
+          }
+        }
+
         setSendResult({
           success: false,
-          message: data.error || 'Failed to send message',
+          message: errorMessage,
         })
       }
     } catch (error) {

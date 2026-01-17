@@ -1,40 +1,42 @@
-[00:00:00.707] Server  LOG     ✓ Ready in 577ms
-[00:00:00.898] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:00:01.063] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:06.426] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:00:46.537] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:01:52.654] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:04:41.435] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:04:57.206] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:08:50.985] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:43:33.871] Browser ERROR   ./src/app/(dashboard)/dashboard/page.tsx:42:17
-Ecmascript file had an error
-  40 |     .rpc('get_school_current_usage', { p_school_id: schoolId })
-  41 |     .single()
-> 42 |   const { data: usageData } = await supabase
-     |                 ^^^^^^^^^
-  43 |   .rpc('get_school_current_usage', {
-  44 |     p_school_id: schoolId,
-  45 |   })
-
-the name `usageData` is defined multiple times
-[01:44:02.984] Server  LOG     ✓ Compiled in 49ms
-[02:59:52.027] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[03:00:35.017] Browser ERROR   `value` prop on `%s` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components. input
-[03:00:35.017] Browser ERROR   A component is changing a controlled input to be uncontrolled. This is likely caused by the value changing from a defined to undefined, which should not happen. Decide between using a controlled or uncontrolled input element for the lifetime of the component. More info: https://react.dev/link/controlled-components
-[03:00:36.190] Browser ERROR   A component is changing an uncontrolled input to be controlled. This is likely caused by the value changing from undefined to a defined value, which should not happen. Decide between using a controlled or uncontrolled input element for the lifetime of the component. More info: https://react.dev/link/controlled-components
-[03:01:06.856] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[03:01:24.470] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[03:01:36.724] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[03:09:30.411] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[03:32:30.405] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[08:27:22.860] Server  LOG     ✓ Compiled in 55ms
-[08:27:42.921] Server  LOG     ✓ Compiled in 37ms
-[08:38:51.829] Server  ERROR   TypeError: fetch failed
-[08:38:57.434] Server  LOG     ✓ Compiled in 39ms
-[08:39:57.213] Server  LOG     ✓ Compiled in 38ms
-[08:40:07.833] Server  ERROR   TypeError: fetch failed
-[08:40:07.973] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[08:40:18.560] Server  ERROR   TypeError: fetch failed
-[08:40:50.793] Server  LOG     ✓ Compiled in 43ms
-[08:41:04.027] Server  LOG     ✓ Compiled in 42ms
+[00:00:00.630] Server  LOG     ✓ Ready in 501ms
+[00:00:06.142] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:00:06.362] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:14.657] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:00:23.305] Server  LOG     [WhatsApp] Initializing client for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:23.307] Server  LOG     [WhatsApp] Client created, setting up event handlers...
+[00:00:23.307] Server  LOG     [WhatsApp] Starting client initialization...
+[00:00:27.053] Server  LOG     [WhatsApp] Client ready, loading chats to sync internal state...
+[00:00:28.049] Server  LOG     [WhatsApp] Loaded 136 chats, client fully ready
+[00:00:33.982] Server  LOG     [WhatsApp] Full reset requested for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:33.983] Server  LOG     [WhatsApp] Starting full reset for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:34.047] Server  LOG     [WhatsApp] Cleaned up lock file for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:34.047] Server  LOG     [WhatsApp] Force cleanup completed for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:34.065] Server  LOG     [WhatsApp] Deleted session folder: /Applications/Projects/school/shiksha-sms/.wwebjs_auth/session-school-a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:34.065] Server  LOG     [WhatsApp] Full reset completed for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:36.020] Server  LOG     [WhatsApp] Initializing client for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:36.020] Server  LOG     [WhatsApp] Client created, setting up event handlers...
+[00:00:36.021] Server  LOG     [WhatsApp] Starting client initialization...
+[00:00:41.302] Server  LOG     [WhatsApp] QR code received for school: a50f9866-0366-4ec4-a410-d95f5442932a
+[00:00:41.321] Server  LOG     [WhatsApp] Resolving with QR code
+[00:00:59.080] Server  LOG     [WhatsApp] Client ready, loading chats to sync internal state...
+[00:01:44.312] Server  LOG     [WhatsApp] Loaded 135 chats, client fully ready
+[00:01:50.256] Server  LOG     [WhatsApp] Number validated: 919153733160@c.us
+[00:01:50.256] Server  LOG     [WhatsApp] Attempting direct client.sendMessage for: 919153733160@c.us
+[00:01:50.279] Server  LOG     [WhatsApp Send] Creating message log: {}
+[00:01:51.153] Server  LOG     [WhatsApp Send] Message log created: {}
+[00:02:19.789] Server  LOG     [WhatsApp] Number validated: 919153733160@c.us
+[00:02:19.790] Server  LOG     [WhatsApp] Attempting direct client.sendMessage for: 919153733160@c.us
+[00:02:20.721] Server  LOG     [WhatsApp] Number validated: 919153733160@c.us
+[00:02:20.722] Server  LOG     [WhatsApp] Attempting direct client.sendMessage for: 919153733160@c.us
+[00:02:21.734] Server  LOG     [WhatsApp] Number validated: 918804903992@c.us
+[00:02:21.735] Server  LOG     [WhatsApp] Attempting direct client.sendMessage for: 918804903992@c.us
+[00:02:22.254] Server  LOG     [WhatsApp Send] Creating message log: {}
+[00:02:22.496] Server  LOG     [WhatsApp Send] Message log created: {}
+[00:08:50.844] Server  LOG     ✓ Compiled in 337ms
+[00:09:04.383] Server  LOG     ✓ Compiled in 51ms
+[00:10:01.877] Server  LOG     ✓ Compiled in 48ms
+[00:10:40.388] Server  LOG     ✓ Compiled in 37ms
+[00:13:20.733] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:13:21.706] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:13:33.379] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:13:36.025] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase

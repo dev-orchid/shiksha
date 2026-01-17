@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         .from('staff_attendance')
         .select(`
           *,
-          staff (id, first_name, last_name, employee_id, designation, department_id, departments(id, name))
+          staff!staff_id (id, first_name, last_name, employee_id, designation, department_id, department:departments!department_id(id, name))
         `)
         .eq('school_id', authUser.schoolId)
         .gte('date', startDate)
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       const departmentWise: Record<string, { name: string; present: number; absent: number; late: number; total: number }> = {}
 
       for (const record of staffAttendance || []) {
-        const deptName = record.staff?.departments?.name || 'Unknown'
+        const deptName = record.staff?.department?.name || 'Unknown'
         if (!departmentWise[deptName]) {
           departmentWise[deptName] = { name: deptName, present: 0, absent: 0, late: 0, total: 0 }
         }

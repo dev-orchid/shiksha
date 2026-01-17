@@ -33,8 +33,10 @@ export async function GET(request: NextRequest) {
 
     // If client is connected in memory, return that status
     if (liveStatus?.isConnected) {
+      const isFullyReady = whatsappClientManager.isFullyReady(targetSchoolId!)
       return NextResponse.json({
         isConnected: true,
+        isFullyReady,
         phoneNumber: liveStatus.phoneNumber,
         deviceName: liveStatus.deviceName,
         lastSeen: liveStatus.lastSeen,

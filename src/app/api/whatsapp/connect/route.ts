@@ -55,10 +55,18 @@ export async function POST(request: NextRequest) {
           qrCode: existingQR,
         })
       }
-      return NextResponse.json({
-        success: true,
-        message: 'Initializing, please wait...',
-      })
+      // Check if initialization is stuck (will be handled in initializeClient)
+      // Don't return early here - let initializeClient detect and handle stuck state
+      const initStartedAt = whatsappClientManager.getInitStartedAt(school_id)
+      const isStuck = initStartedAt && (Date.now() - initStartedAt > 30000)
+      if (!isStuck) {
+        return NextResponse.json({
+          success: true,
+          message: 'Initializing, please wait...',
+        })
+      }
+      // If stuck, fall through to initializeClient which will cleanup and retry
+      console.log(`[WhatsApp] Detected stuck initialization for school: ${school_id}, retrying...`)
     }
 
     // Initialize client

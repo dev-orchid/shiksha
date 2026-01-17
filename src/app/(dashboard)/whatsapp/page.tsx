@@ -258,7 +258,7 @@ export default function WhatsAppPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Messages Sent</p>
+                <p className="text-xs text-gray-500">Total Messages</p>
               </div>
             </div>
           </CardContent>
@@ -270,8 +270,21 @@ export default function WhatsAppPage() {
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.delivered.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Delivered</p>
+                <p className="text-2xl font-bold">{stats.sent.toLocaleString()}</p>
+                <p className="text-xs text-gray-500">Sent Successfully</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <XCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.failed.toLocaleString()}</p>
+                <p className="text-xs text-gray-500">Failed</p>
               </div>
             </div>
           </CardContent>
@@ -285,19 +298,6 @@ export default function WhatsAppPage() {
               <div>
                 <p className="text-2xl font-bold">{groups.length}</p>
                 <p className="text-xs text-gray-500">Active Groups</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <FileText className="h-5 w-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{templates.length}</p>
-                <p className="text-xs text-gray-500">Templates</p>
               </div>
             </div>
           </CardContent>

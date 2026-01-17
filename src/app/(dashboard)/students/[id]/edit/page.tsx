@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { ArrowLeft, Save, Loader2, Upload, X, UserPlus, Trash2, Search } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Upload, X, UserPlus, Trash2, Search, Key, Shield } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 
 interface Parent {
@@ -18,6 +18,7 @@ interface Parent {
   relation: string
   phone: string | null
   email: string | null
+  user_id: string | null
 }
 
 interface StudentParent {
@@ -88,7 +89,11 @@ export default function EditStudentPage() {
     relation: 'father',
     phone: '',
     email: '',
+    enable_portal_access: false,
   })
+  const [portalCredentials, setPortalCredentials] = useState<{ email: string; password: string } | null>(null)
+  const [portalMessage, setPortalMessage] = useState<string | null>(null)
+  const [enablingPortal, setEnablingPortal] = useState<string | null>(null) // parent ID being enabled
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -299,6 +304,10 @@ export default function EditStudentPage() {
       alert('Parent first name is required')
       return
     }
+    if (newParentForm.enable_portal_access && !newParentForm.email) {
+      alert('Email is required for portal access')
+      return
+    }
     setAddingParent(true)
     try {
       const response = await fetch(`/api/students/${params.id}/parents`, {
@@ -307,14 +316,29 @@ export default function EditStudentPage() {
         body: JSON.stringify(newParentForm),
       })
       if (response.ok) {
+        const responseData = await response.json()
+
         // Refresh student data
         const studentRes = await fetch(`/api/students/${params.id}`)
         if (studentRes.ok) {
           const studentData = await studentRes.json()
           setLinkedParents(studentData.data.student_parents || [])
         }
-        setShowAddParentModal(false)
-        setNewParentForm({ first_name: '', last_name: '', relation: 'father', phone: '', email: '' })
+
+        // Check if portal credentials were created or if there's a message
+        if (responseData.portal_credentials) {
+          setPortalCredentials(responseData.portal_credentials)
+          setPortalMessage(null)
+          // Don't close modal yet - show credentials first
+        } else if (responseData.portal_message) {
+          setPortalMessage(responseData.portal_message)
+          setPortalCredentials(null)
+          // Don't close modal yet - show message
+        } else {
+          setShowAddParentModal(false)
+          setNewParentForm({ first_name: '', last_name: '', relation: 'father', phone: '', email: '', enable_portal_access: false })
+          setPortalMessage(null)
+        }
       } else {
         const err = await response.json()
         alert(err.error || 'Failed to create parent')
@@ -342,6 +366,42 @@ export default function EditStudentPage() {
     } catch (err) {
       console.error('Error unlinking parent:', err)
       alert('Failed to unlink parent')
+    }
+  }
+
+  const enablePortalAccess = async (parent: Parent) => {
+    if (!parent.email) {
+      alert('Parent must have an email address to enable portal access')
+      return
+    }
+    setEnablingPortal(parent.id)
+    try {
+      const response = await fetch(`/api/parents/${parent.id}/portal-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await response.json()
+      if (response.ok) {
+        if (data.credentials) {
+          setPortalCredentials(data.credentials)
+          setShowAddParentModal(true)
+        } else if (data.message) {
+          alert(data.message)
+        }
+        // Refresh parents list to update user_id
+        const studentRes = await fetch(`/api/students/${params.id}`)
+        if (studentRes.ok) {
+          const studentData = await studentRes.json()
+          setLinkedParents(studentData.data.student_parents || [])
+        }
+      } else {
+        alert(data.error || 'Failed to enable portal access')
+      }
+    } catch (err) {
+      console.error('Error enabling portal access:', err)
+      alert('Failed to enable portal access')
+    } finally {
+      setEnablingPortal(null)
     }
   }
 
@@ -688,7 +748,7 @@ export default function EditStudentPage() {
                 <div className="space-y-3">
                   {linkedParents.map((sp) => (
                     <div key={sp.parents.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium text-gray-900">
                           {sp.parents.first_name} {sp.parents.last_name}
                           <span className="ml-2 text-xs font-normal px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
@@ -699,20 +759,43 @@ export default function EditStudentPage() {
                               Primary
                             </span>
                           )}
+                          {sp.parents.user_id ? (
+                            <span className="ml-1 text-xs font-normal px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full inline-flex items-center gap-1">
+                              <Shield className="h-3 w-3" />
+                              Portal Access
+                            </span>
+                          ) : null}
                         </p>
                         <p className="text-sm text-gray-500">
                           {sp.parents.phone && <span className="mr-3">{sp.parents.phone}</span>}
                           {sp.parents.email && <span>{sp.parents.email}</span>}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => unlinkParent(sp.parents.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded"
-                        title="Unlink parent"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {!sp.parents.user_id && sp.parents.email && (
+                          <button
+                            type="button"
+                            onClick={() => enablePortalAccess(sp.parents)}
+                            disabled={enablingPortal === sp.parents.id}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded disabled:opacity-50"
+                            title="Enable portal access"
+                          >
+                            {enablingPortal === sp.parents.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Key className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => unlinkParent(sp.parents.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded"
+                          title="Unlink parent"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -803,11 +886,87 @@ export default function EditStudentPage() {
           setShowAddParentModal(false)
           setParentSearch('')
           setSearchResults([])
-          setNewParentForm({ first_name: '', last_name: '', relation: 'father', phone: '', email: '' })
+          setNewParentForm({ first_name: '', last_name: '', relation: 'father', phone: '', email: '', enable_portal_access: false })
+          setPortalCredentials(null)
+          setPortalMessage(null)
         }}
-        title="Add Parent/Guardian"
+        title={portalCredentials ? "Portal Credentials Created" : portalMessage ? "Parent Added" : "Add Parent/Guardian"}
       >
         <div className="space-y-6">
+          {/* Show credentials if created */}
+          {portalCredentials ? (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-green-800 font-medium mb-2">Parent portal account created successfully!</p>
+                <p className="text-sm text-green-700 mb-4">Please save these credentials and share them with the parent:</p>
+                <div className="bg-white rounded-lg p-4 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase">Email (Username)</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-sm font-mono">{portalCredentials.email}</code>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(portalCredentials.email)
+                          alert('Email copied!')
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase">Temporary Password</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="flex-1 bg-gray-100 px-3 py-2 rounded text-sm font-mono">{portalCredentials.password}</code>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(portalCredentials.password)
+                          alert('Password copied!')
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-green-600 mt-3">The parent can use these credentials to log in at the login page.</p>
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setShowAddParentModal(false)
+                  setNewParentForm({ first_name: '', last_name: '', relation: 'father', phone: '', email: '', enable_portal_access: false })
+                  setPortalCredentials(null)
+                  setPortalMessage(null)
+                }}
+              >
+                Done
+              </Button>
+            </div>
+          ) : portalMessage ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800 font-medium mb-2">Parent added successfully!</p>
+                <p className="text-sm text-blue-700">{portalMessage}</p>
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setShowAddParentModal(false)
+                  setNewParentForm({ first_name: '', last_name: '', relation: 'father', phone: '', email: '', enable_portal_access: false })
+                  setPortalCredentials(null)
+                  setPortalMessage(null)
+                }}
+              >
+                Done
+              </Button>
+            </div>
+          ) : (
+            <>
           {/* Search Existing Parents */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -902,16 +1061,40 @@ export default function EditStudentPage() {
                 onChange={(e) => setNewParentForm(prev => ({ ...prev, email: e.target.value }))}
               />
             </div>
+
+            {/* Enable Portal Access Checkbox */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={newParentForm.enable_portal_access}
+                  onChange={(e) => setNewParentForm(prev => ({ ...prev, enable_portal_access: e.target.checked }))}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <div>
+                  <span className="font-medium text-blue-900">Enable Portal Access</span>
+                  <p className="text-sm text-blue-700 mt-0.5">
+                    Create login credentials for the parent to access the parent portal.
+                    {!newParentForm.email && newParentForm.enable_portal_access && (
+                      <span className="block text-red-600 mt-1">Email is required for portal access.</span>
+                    )}
+                  </p>
+                </div>
+              </label>
+            </div>
+
             <Button
               type="button"
               className="w-full"
               onClick={createAndLinkParent}
-              disabled={addingParent || !newParentForm.first_name}
+              disabled={addingParent || !newParentForm.first_name || (newParentForm.enable_portal_access && !newParentForm.email)}
               icon={addingParent ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
             >
               {addingParent ? 'Creating...' : 'Create & Link Parent'}
             </Button>
           </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
