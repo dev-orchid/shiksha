@@ -1,16 +1,15 @@
 {
   "/(auth)/login/page": "app/(auth)/login/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/whatsapp/connect/page": "app/(dashboard)/whatsapp/connect/page.js",
-  "/(dashboard)/whatsapp/logs/page": "app/(dashboard)/whatsapp/logs/page.js",
-  "/(dashboard)/whatsapp/page": "app/(dashboard)/whatsapp/page.js",
-  "/(dashboard)/whatsapp/send/page": "app/(dashboard)/whatsapp/send/page.js",
+  "/(dashboard)/events/new/page": "app/(dashboard)/events/new/page.js",
+  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
+  "/(dashboard)/settings/event-types/page": "app/(dashboard)/settings/event-types/page.js",
+  "/(dashboard)/settings/plan/page": "app/(dashboard)/settings/plan/page.js",
+  "/(dashboard)/settings/users/page": "app/(dashboard)/settings/users/page.js",
   "/api/auth/profile/route": "app/api/auth/profile/route.js",
-  "/api/whatsapp/connect/route": "app/api/whatsapp/connect/route.js",
-  "/api/whatsapp/disconnect/route": "app/api/whatsapp/disconnect/route.js",
-  "/api/whatsapp/groups/route": "app/api/whatsapp/groups/route.js",
-  "/api/whatsapp/logs/route": "app/api/whatsapp/logs/route.js",
-  "/api/whatsapp/send/route": "app/api/whatsapp/send/route.js",
-  "/api/whatsapp/status/route": "app/api/whatsapp/status/route.js",
-  "/api/whatsapp/templates/route": "app/api/whatsapp/templates/route.js"
+  "/api/event-types/[id]/route": "app/api/event-types/[id]/route.js",
+  "/api/event-types/route": "app/api/event-types/route.js",
+  "/api/events/route": "app/api/events/route.js",
+  "/api/users/route": "app/api/users/route.js",
+  "/page": "app/page.js"
 }

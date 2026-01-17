@@ -42,7 +42,7 @@ export default function BillingSettingsPage() {
       period: 'per student',
       student_limit: 300,
       admin_limit: 5,
-      features: ['Basic reports', 'Email support'],
+      features: ['Basic reports', 'Email support','Telegram Integration'],
     },
     professional: {
       name: 'Professional',
@@ -51,7 +51,7 @@ export default function BillingSettingsPage() {
       period: 'per student',
       student_limit: 1000,
       admin_limit: 15,
-      features: ['Advanced reports', 'WhatsApp integration', 'Priority support'],
+      features: ['Advanced reports', 'WhatsApp integration', 'Priority support','Online Fee Payment'],
     },
     enterprise: {
       name: 'Enterprise',
@@ -60,7 +60,7 @@ export default function BillingSettingsPage() {
       period: 'per student',
       student_limit: null,
       admin_limit: null,
-      features: ['Unlimited students', 'Unlimited admin users', 'Custom features', 'Dedicated support', 'SLA guarantee'],
+      features: ['Unlimited students', 'Online Fee Payment', 'Custom features', 'Dedicated support', 'SLA guarantee'],
     },
   })
 

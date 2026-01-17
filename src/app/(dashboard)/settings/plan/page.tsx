@@ -39,6 +39,7 @@ export default function PlanSettingsPage() {
     ],
     'Communication': [
       'whatsapp_integration',
+      'telegram_integration',
       'email_support',
       'priority_support',
       'dedicated_support',
@@ -164,7 +165,7 @@ export default function PlanSettingsPage() {
                       ) : (
                         <div>
                           <span className="text-3xl font-bold text-gray-900">₹{plan.price}</span>
-                          <span className="text-gray-500">/student/month</span>
+                          <span className="text-gray-500">/student/year</span>
                         </div>
                       )}
                     </div>

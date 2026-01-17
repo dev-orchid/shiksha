@@ -15,6 +15,7 @@ export const PLAN_FEATURES = {
   BASIC_REPORTS: 'basic_reports',
   EMAIL_SUPPORT: 'email_support',
   WHATSAPP_INTEGRATION: 'whatsapp_integration',
+  TELEGRAM_INTEGRATION: 'telegram_integration',
 
   // Professional+ features
   CUSTOM_REPORTS: 'custom_reports',
@@ -22,7 +23,6 @@ export const PLAN_FEATURES = {
   WEEKLY_BACKUPS: 'weekly_backups',
 
   // Enterprise only features
-  API_ACCESS: 'api_access',
   MULTI_BRANCH: 'multi_branch',
   DEDICATED_SUPPORT: 'dedicated_support',
   CUSTOM_DEVELOPMENT: 'custom_development',
@@ -48,7 +48,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     description: 'Best for small schools',
     price: 50,
     maxStudents: 300,
-    maxAdminUsers: 5,
+    maxAdminUsers: 3,
     features: [
       PLAN_FEATURES.STUDENT_MANAGEMENT,
       PLAN_FEATURES.ATTENDANCE_TRACKING,
@@ -56,7 +56,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       PLAN_FEATURES.EXAM_MANAGEMENT,
       PLAN_FEATURES.BASIC_REPORTS,
       PLAN_FEATURES.EMAIL_SUPPORT,
-      PLAN_FEATURES.WHATSAPP_INTEGRATION,
+      PLAN_FEATURES.TELEGRAM_INTEGRATION,
     ],
   },
   [PLAN_TYPES.PROFESSIONAL]: {
@@ -65,7 +65,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     description: 'Best for medium schools',
     price: 100,
     maxStudents: 1000,
-    maxAdminUsers: 15,
+    maxAdminUsers: 5,
     features: [
       PLAN_FEATURES.STUDENT_MANAGEMENT,
       PLAN_FEATURES.ATTENDANCE_TRACKING,
@@ -85,7 +85,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
     description: 'Best for large institutions',
     price: 0, // Custom pricing
     maxStudents: null, // Unlimited
-    maxAdminUsers: null, // Unlimited
+    maxAdminUsers: 8, // Unlimited
     features: [
       PLAN_FEATURES.STUDENT_MANAGEMENT,
       PLAN_FEATURES.ATTENDANCE_TRACKING,
@@ -96,7 +96,6 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       PLAN_FEATURES.WHATSAPP_INTEGRATION,
       PLAN_FEATURES.CUSTOM_REPORTS,
       PLAN_FEATURES.PRIORITY_SUPPORT,
-      PLAN_FEATURES.API_ACCESS,
       PLAN_FEATURES.MULTI_BRANCH,
       PLAN_FEATURES.DEDICATED_SUPPORT,
       PLAN_FEATURES.CUSTOM_DEVELOPMENT,
@@ -113,10 +112,10 @@ export const FEATURE_NAMES: Record<PlanFeature, string> = {
   [PLAN_FEATURES.BASIC_REPORTS]: 'Basic Reports',
   [PLAN_FEATURES.EMAIL_SUPPORT]: 'Email Support',
   [PLAN_FEATURES.WHATSAPP_INTEGRATION]: 'WhatsApp Integration',
+  [PLAN_FEATURES.TELEGRAM_INTEGRATION]: 'Telegram Integration',
   [PLAN_FEATURES.CUSTOM_REPORTS]: 'Custom Reports',
   [PLAN_FEATURES.PRIORITY_SUPPORT]: 'Priority Support',
   [PLAN_FEATURES.WEEKLY_BACKUPS]: 'Weekly Backups',
-  [PLAN_FEATURES.API_ACCESS]: 'API Access',
   [PLAN_FEATURES.MULTI_BRANCH]: 'Multi-Branch Support',
   [PLAN_FEATURES.DEDICATED_SUPPORT]: 'Dedicated Support',
   [PLAN_FEATURES.CUSTOM_DEVELOPMENT]: 'Custom Development',
@@ -131,10 +130,10 @@ export const FEATURE_DESCRIPTIONS: Record<PlanFeature, string> = {
   [PLAN_FEATURES.BASIC_REPORTS]: 'Essential reports for attendance, fees, and academic performance',
   [PLAN_FEATURES.EMAIL_SUPPORT]: 'Get help via email support',
   [PLAN_FEATURES.WHATSAPP_INTEGRATION]: 'Send WhatsApp messages to students and parents',
+  [PLAN_FEATURES.TELEGRAM_INTEGRATION]: 'Send Telegram messages to students and parents',
   [PLAN_FEATURES.CUSTOM_REPORTS]: 'Generate custom reports with advanced filtering and analytics',
   [PLAN_FEATURES.PRIORITY_SUPPORT]: 'Get faster response times for your support requests',
   [PLAN_FEATURES.WEEKLY_BACKUPS]: 'Automated weekly backups of your school data',
-  [PLAN_FEATURES.API_ACCESS]: 'Integrate with third-party systems using our REST API',
   [PLAN_FEATURES.MULTI_BRANCH]: 'Manage multiple school branches from a single account',
   [PLAN_FEATURES.DEDICATED_SUPPORT]: 'Get a dedicated support manager for your school',
   [PLAN_FEATURES.CUSTOM_DEVELOPMENT]: 'Request custom features tailored to your needs',
@@ -171,6 +170,10 @@ export const FEATURES: Record<PlanFeature, { name: string; description: string }
     name: FEATURE_NAMES[PLAN_FEATURES.WHATSAPP_INTEGRATION],
     description: FEATURE_DESCRIPTIONS[PLAN_FEATURES.WHATSAPP_INTEGRATION],
   },
+  [PLAN_FEATURES.TELEGRAM_INTEGRATION]: {
+    name: FEATURE_NAMES[PLAN_FEATURES.TELEGRAM_INTEGRATION],
+    description: FEATURE_DESCRIPTIONS[PLAN_FEATURES.TELEGRAM_INTEGRATION],
+  },
   [PLAN_FEATURES.CUSTOM_REPORTS]: {
     name: FEATURE_NAMES[PLAN_FEATURES.CUSTOM_REPORTS],
     description: FEATURE_DESCRIPTIONS[PLAN_FEATURES.CUSTOM_REPORTS],
@@ -183,10 +186,7 @@ export const FEATURES: Record<PlanFeature, { name: string; description: string }
     name: FEATURE_NAMES[PLAN_FEATURES.WEEKLY_BACKUPS],
     description: FEATURE_DESCRIPTIONS[PLAN_FEATURES.WEEKLY_BACKUPS],
   },
-  [PLAN_FEATURES.API_ACCESS]: {
-    name: FEATURE_NAMES[PLAN_FEATURES.API_ACCESS],
-    description: FEATURE_DESCRIPTIONS[PLAN_FEATURES.API_ACCESS],
-  },
+  
   [PLAN_FEATURES.MULTI_BRANCH]: {
     name: FEATURE_NAMES[PLAN_FEATURES.MULTI_BRANCH],
     description: FEATURE_DESCRIPTIONS[PLAN_FEATURES.MULTI_BRANCH],
