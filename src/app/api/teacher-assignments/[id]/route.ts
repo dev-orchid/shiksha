@@ -32,7 +32,9 @@ export async function DELETE(
     }
 
     // Check school ownership
-    const staff = assignment.staff as { id: string; school_id: string } | null
+    // Supabase returns joined relations as arrays, so we need to handle both cases
+    const staffData = assignment.staff
+    const staff = Array.isArray(staffData) ? staffData[0] : staffData
     if (!staff || staff.school_id !== authUser.schoolId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
