@@ -5,6 +5,9 @@ import { whatsappClientManager } from '@/lib/whatsapp/client-manager'
 // GET - Get WhatsApp connection status
 export async function GET(request: NextRequest) {
   try {
+    // Check if running on Vercel/serverless (no persistent filesystem)
+    const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+
     const { searchParams } = new URL(request.url)
     const schoolId = searchParams.get('school_id')
 
@@ -69,6 +72,7 @@ export async function GET(request: NextRequest) {
     if (!config) {
       return NextResponse.json({
         isConnected: false,
+        isServerless,
         phoneNumber: null,
         deviceName: null,
         lastSeen: null,

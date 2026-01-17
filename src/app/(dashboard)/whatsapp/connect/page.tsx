@@ -21,6 +21,7 @@ interface ConnectionStatus {
   isConnected: boolean
   isInitializing?: boolean
   needsReconnect?: boolean
+  isServerless?: boolean
   phoneNumber: string | null
   deviceName: string | null
   lastSeen: string | null
@@ -122,6 +123,10 @@ export default function WhatsAppConnectPage() {
           }
         }, 120000)
       } else {
+        // Check if this is a serverless platform error
+        if (data.isServerless) {
+          setStatus({ ...status, isServerless: true } as ConnectionStatus)
+        }
         setError(data.error || 'Failed to initiate connection')
         setConnecting(false)
       }
@@ -270,6 +275,24 @@ export default function WhatsAppConnectPage() {
                       )}
                     </div>
                   </div>
+                ) : status?.isServerless ? (
+                  <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <AlertCircle className="h-6 w-6 text-orange-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-orange-800">Not Available on Cloud Hosting</p>
+                      <p className="text-sm text-orange-600 mt-1">
+                        WhatsApp Web integration requires a persistent server with browser support.
+                        Serverless platforms like Vercel cannot maintain WhatsApp sessions.
+                      </p>
+                      <p className="text-sm text-orange-600 mt-2">
+                        <strong>Options:</strong>
+                      </p>
+                      <ul className="text-sm text-orange-600 mt-1 list-disc list-inside">
+                        <li>Self-host on a VPS (DigitalOcean, AWS EC2, Railway)</li>
+                        <li>Use WhatsApp Business API (paid cloud service)</li>
+                      </ul>
+                    </div>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <XCircle className="h-6 w-6 text-yellow-600" />
@@ -280,9 +303,11 @@ export default function WhatsAppConnectPage() {
                   </div>
                 )}
 
-                <Button onClick={startConnection} disabled={connecting} className="w-full">
-                  {connecting ? 'Connecting...' : status?.needsReconnect ? 'Reconnect WhatsApp' : 'Connect WhatsApp'}
-                </Button>
+                {!status?.isServerless && (
+                  <Button onClick={startConnection} disabled={connecting} className="w-full">
+                    {connecting ? 'Connecting...' : status?.needsReconnect ? 'Reconnect WhatsApp' : 'Connect WhatsApp'}
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>

@@ -10,6 +10,17 @@ const connectSchema = z.object({
 // POST - Initialize WhatsApp connection
 export async function POST(request: NextRequest) {
   try {
+    // Check if running on Vercel/serverless (no persistent filesystem)
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      return NextResponse.json(
+        {
+          error: 'WhatsApp Web integration is not available on serverless platforms (Vercel). WhatsApp requires a persistent server to maintain browser sessions. Please deploy to a VPS (DigitalOcean, AWS EC2, Railway) or use a cloud WhatsApp API service.',
+          isServerless: true
+        },
+        { status: 503 }
+      )
+    }
+
     const body = await request.json().catch(() => ({}))
     const parsed = connectSchema.parse(body)
 
