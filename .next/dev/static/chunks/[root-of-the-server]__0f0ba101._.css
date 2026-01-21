@@ -725,6 +725,10 @@
     top: calc(var(--spacing) * 4);
   }
 
+  .top-8 {
+    top: calc(var(--spacing) * 8);
+  }
+
   .-right-1 {
     right: calc(var(--spacing) * -1);
   }
@@ -1163,6 +1167,10 @@
     width: calc(var(--spacing) * 12);
   }
 
+  .w-14 {
+    width: calc(var(--spacing) * 14);
+  }
+
   .w-16 {
     width: calc(var(--spacing) * 16);
   }
@@ -1350,6 +1358,10 @@
 
   .list-inside {
     list-style-position: inside;
+  }
+
+  .list-decimal {
+    list-style-type: decimal;
   }
 
   .list-disc {
@@ -2640,6 +2652,10 @@
     color: var(--color-emerald-100);
   }
 
+  .text-emerald-600 {
+    color: var(--color-emerald-600);
+  }
+
   .text-emerald-700 {
     color: var(--color-emerald-700);
   }
@@ -2913,6 +2929,12 @@
     backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
   }
 
+  .transition {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+
   .transition-all {
     transition-property: all;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
@@ -3007,6 +3029,11 @@
   .after\:absolute:after {
     content: var(--tw-content);
     position: absolute;
+  }
+
+  .after\:start-\[2px\]:after {
+    content: var(--tw-content);
+    inset-inline-start: 2px;
   }
 
   .after\:top-\[2px\]:after {
@@ -3690,6 +3717,12 @@
     .lg\:px-8 {
       padding-inline: calc(var(--spacing) * 8);
     }
+  }
+
+  .rtl\:peer-checked\:after\:-translate-x-full:where(:is(:lang(ae), :lang(ar), :lang(arc), :lang(bcc), :lang(bqi), :lang(ckb), :lang(dv), :lang(fa), :lang(glk), :lang(he), :lang(ku), :lang(mzn), :lang(nqo), :lang(pnb), :lang(ps), :lang(sd), :lang(ug), :lang(ur), :lang(yi)), [dir="rtl"], [dir="rtl"] *):is(:where(.peer):checked ~ *):after {
+    content: var(--tw-content);
+    --tw-translate-x: -100%;
+    translate: var(--tw-translate-x) var(--tw-translate-y);
   }
 
   @media (prefers-color-scheme: dark) {

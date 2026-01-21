@@ -1193,3 +1193,55 @@ export type WhatsAppTemplate = Database['public']['Tables']['whatsapp_templates'
 export type WhatsAppMessage = Database['public']['Tables']['whatsapp_messages']['Row']
 export type WhatsAppBroadcast = Database['public']['Tables']['whatsapp_broadcasts']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']
+
+// Razorpay Payment Gateway Types
+export interface RazorpayConfig {
+  id: string
+  school_id: string
+  key_id: string
+  key_secret_encrypted: string
+  webhook_secret_encrypted: string | null
+  mode: 'test' | 'live'
+  is_enabled: boolean
+  display_name: string | null
+  theme_color: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+}
+
+// Payment Transaction Types
+export type PaymentGateway = 'ntt_data' | 'razorpay'
+export type PaymentTransactionStatus = 'initiated' | 'pending' | 'success' | 'failed' | 'cancelled'
+
+export interface PaymentTransaction {
+  id: string
+  school_id: string
+  invoice_id: string
+  student_id: string
+  order_id: string
+  transaction_id: string | null
+  amount: number
+  currency: string
+  status: PaymentTransactionStatus
+  payment_mode: string | null
+  payment_gateway: PaymentGateway
+  razorpay_order_id: string | null
+  razorpay_payment_id: string | null
+  razorpay_signature: string | null
+  ntt_order_id: string | null
+  ntt_response_code: string | null
+  ntt_response_message: string | null
+  initiated_by: string | null
+  customer_name: string | null
+  customer_email: string | null
+  customer_phone: string | null
+  initiated_at: string
+  completed_at: string | null
+  gateway_request: Record<string, unknown> | null
+  gateway_response: Record<string, unknown> | null
+  webhook_payload: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}

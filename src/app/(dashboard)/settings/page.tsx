@@ -83,6 +83,13 @@ const schoolSettingsSections = [
     color: 'bg-red-100 text-red-600',
   },
   {
+    title: 'Payment Gateway',
+    description: 'Configure Razorpay for online fee collection',
+    icon: CreditCard,
+    href: '/settings/payments',
+    color: 'bg-emerald-100 text-emerald-600',
+  },
+  {
     title: 'Security',
     description: 'Password policies and session settings',
     icon: Shield,

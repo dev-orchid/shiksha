@@ -388,7 +388,7 @@ export default function PayAllDuesPage() {
 
                   <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
                     <Shield className="h-3 w-3" />
-                    <span>Secured by NTT DATA Payment Gateway</span>
+                    <span>Secured by Razorpay Payment Gateway</span>
                   </div>
                 </CardContent>
               </Card>

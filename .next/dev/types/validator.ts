@@ -398,6 +398,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../src/app/(dashboard)/settings/payments/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/settings/payments">> = Specific
+  const handler = {} as typeof import("../../../src/app/(dashboard)/settings/payments/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../src/app/(dashboard)/settings/plan/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/settings/plan">> = Specific
@@ -1100,6 +1109,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../src/app/api/parent/profile/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/parent/profile">> = Specific
+  const handler = {} as typeof import("../../../src/app/api/parent/profile/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../src/app/api/parents/[id]/portal-access/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/parents/[id]/portal-access">> = Specific
@@ -1127,15 +1145,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../../src/app/api/payments/callback/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payments/callback">> = Specific
-  const handler = {} as typeof import("../../../src/app/api/payments/callback/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
 // Validate ../../../src/app/api/payments/initiate/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/payments/initiate">> = Specific
@@ -1145,10 +1154,19 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../../src/app/api/payments/webhook/route.ts
+// Validate ../../../src/app/api/payments/razorpay/verify/route.ts
 {
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payments/webhook">> = Specific
-  const handler = {} as typeof import("../../../src/app/api/payments/webhook/route.js")
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payments/razorpay/verify">> = Specific
+  const handler = {} as typeof import("../../../src/app/api/payments/razorpay/verify/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../src/app/api/payments/razorpay/webhook/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payments/razorpay/webhook">> = Specific
+  const handler = {} as typeof import("../../../src/app/api/payments/razorpay/webhook/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -1293,6 +1311,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/sections">> = Specific
   const handler = {} as typeof import("../../../src/app/api/sections/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../src/app/api/settings/razorpay/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/settings/razorpay">> = Specific
+  const handler = {} as typeof import("../../../src/app/api/settings/razorpay/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../src/app/api/settings/razorpay/test/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/settings/razorpay/test">> = Specific
+  const handler = {} as typeof import("../../../src/app/api/settings/razorpay/test/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
