@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only admin and principal can test payment settings
-    if (!['admin', 'principal', 'super_admin'].includes(authUser.role)) {
+    if (!authUser.role || !['admin', 'principal', 'super_admin'].includes(authUser.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
