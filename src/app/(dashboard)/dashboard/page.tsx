@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAuthenticatedUserSchool } from '@/lib/supabase/auth-utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 import {
   Users,
   GraduationCap,
@@ -11,6 +12,9 @@ import {
   Calendar,
   AlertTriangle,
   AlertCircle,
+  CalendarOff,
+  Clock,
+  CheckCircle,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getStudentLimitWarning, getAdminUserLimitWarning } from '@/lib/utils/plan-features'
@@ -84,6 +88,8 @@ async function getDashboardStats(schoolId: string) {
     totalStudentsForAttendance,
     recentActivityResult,
     upcomingEventsResult,
+    pendingLeaveResult,
+    currentLeaveResult,
   ] = await Promise.all([
     // Current students count
     supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'active'),
@@ -122,6 +128,37 @@ async function getDashboardStats(schoolId: string) {
       start_date,
       event_types (id, name, color)
     `).eq('school_id', schoolId).eq('is_active', true).gte('start_date', today).order('start_date', { ascending: true }).limit(6),
+    // Pending leave applications
+    supabase.from('leave_applications').select(`
+      id,
+      start_date,
+      end_date,
+      reason,
+      status,
+      created_at,
+      students:student_id (
+        id,
+        first_name,
+        last_name,
+        current_class:classes!current_class_id (name),
+        current_section:sections!current_section_id (name)
+      )
+    `).eq('school_id', schoolId).eq('applicant_type', 'student').eq('status', 'pending').order('created_at', { ascending: false }).limit(5),
+    // Students currently on approved leave (leave period includes today or upcoming)
+    supabase.from('leave_applications').select(`
+      id,
+      start_date,
+      end_date,
+      reason,
+      status,
+      students:student_id (
+        id,
+        first_name,
+        last_name,
+        current_class:classes!current_class_id (name),
+        current_section:sections!current_section_id (name)
+      )
+    `).eq('school_id', schoolId).eq('applicant_type', 'student').eq('status', 'approved').lte('start_date', today).gte('end_date', today).limit(10),
   ])
 
   // Calculate values
@@ -159,6 +196,8 @@ async function getDashboardStats(schoolId: string) {
     attendancePercentage,
     recentActivity: recentActivityResult.data || [],
     upcomingEvents: upcomingEventsResult.data || [],
+    pendingLeaveApplications: pendingLeaveResult.data || [],
+    studentsOnLeave: currentLeaveResult.data || [],
   }
 }
 
@@ -503,6 +542,133 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Leave Applications Section */}
+      {(dashboardData.pendingLeaveApplications.length > 0 || dashboardData.studentsOnLeave.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Pending Leave Applications */}
+          {dashboardData.pendingLeaveApplications.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-yellow-500" />
+                  <CardTitle>Pending Leave Requests</CardTitle>
+                </div>
+                <Badge variant="warning" className="text-xs">
+                  {dashboardData.pendingLeaveApplications.length} pending
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-gray-100">
+                  {dashboardData.pendingLeaveApplications.map((leave: any) => {
+                    const student = leave.students
+                    const studentName = student
+                      ? `${student.first_name} ${student.last_name}`
+                      : 'Unknown'
+                    const className = student?.current_class?.name || ''
+                    const sectionName = student?.current_section?.name || ''
+                    const classSection = className + (sectionName ? `-${sectionName}` : '')
+                    const startDate = new Date(leave.start_date).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                    })
+                    const endDate = new Date(leave.end_date).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                    })
+                    const dateRange = leave.start_date === leave.end_date
+                      ? startDate
+                      : `${startDate} - ${endDate}`
+                    return (
+                      <Link
+                        key={leave.id}
+                        href={`/attendance/leave?id=${leave.id}`}
+                        className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{studentName}</p>
+                          <p className="text-xs text-gray-500">{classSection}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">{dateRange}</p>
+                          <p className="text-xs text-gray-400 truncate max-w-[150px]" title={leave.reason}>
+                            {leave.reason}
+                          </p>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+                <div className="px-6 py-3 border-t border-gray-100">
+                  <Link
+                    href="/attendance/leave"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    View all leave requests →
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Students Currently on Leave */}
+          {dashboardData.studentsOnLeave.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarOff className="h-5 w-5 text-blue-500" />
+                  <CardTitle>Students on Leave Today</CardTitle>
+                </div>
+                <Badge variant="info" className="text-xs">
+                  {dashboardData.studentsOnLeave.length} on leave
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-gray-100">
+                  {dashboardData.studentsOnLeave.map((leave: any) => {
+                    const student = leave.students
+                    const studentName = student
+                      ? `${student.first_name} ${student.last_name}`
+                      : 'Unknown'
+                    const className = student?.current_class?.name || ''
+                    const sectionName = student?.current_section?.name || ''
+                    const classSection = className + (sectionName ? `-${sectionName}` : '')
+                    const endDate = new Date(leave.end_date)
+                    const today = new Date()
+                    const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                    return (
+                      <div
+                        key={leave.id}
+                        className="flex items-center justify-between px-6 py-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-xs font-medium text-blue-600">
+                              {student?.first_name?.[0]}{student?.last_name?.[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{studentName}</p>
+                            <p className="text-xs text-gray-500">{classSection}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="info" className="text-xs">
+                            {daysLeft === 0 ? 'Last day' : daysLeft === 1 ? '1 day left' : `${daysLeft} days left`}
+                          </Badge>
+                          <p className="text-xs text-gray-400 mt-1 truncate max-w-[120px]" title={leave.reason}>
+                            {leave.reason}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Upcoming Events */}
       <Card>

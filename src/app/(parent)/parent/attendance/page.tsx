@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
+import { LeaveApplicationModal } from '@/components/parent/LeaveApplicationModal'
 import {
   ArrowLeft,
   CheckCircle,
@@ -73,6 +74,7 @@ export default function ParentAttendancePage() {
   const [selectedChild, setSelectedChild] = useState<string>('')
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false)
 
   // Generate month options
   const getMonthOptions = () => {
@@ -496,7 +498,12 @@ export default function ParentAttendancePage() {
                       <p className="text-sm text-gray-600 mb-4">
                         Need to inform the school about an absence?
                       </p>
-                      <Button className="w-full">Apply for Leave</Button>
+                      <Button
+                        className="w-full"
+                        onClick={() => setLeaveModalOpen(true)}
+                      >
+                        Apply for Leave
+                      </Button>
                     </CardContent>
                   </Card>
                 </div>
@@ -505,6 +512,18 @@ export default function ParentAttendancePage() {
           )}
         </div>
       </main>
+
+      {/* Leave Application Modal */}
+      <LeaveApplicationModal
+        open={leaveModalOpen}
+        onClose={() => setLeaveModalOpen(false)}
+        children={data?.children || []}
+        selectedChildId={selectedChild}
+        onSuccess={() => {
+          // Optionally refetch data to show updated info
+          fetchAttendance(selectedChild, selectedMonth, selectedYear)
+        }}
+      />
     </div>
   )
 }

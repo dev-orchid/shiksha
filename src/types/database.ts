@@ -1144,6 +1144,100 @@ export type Database = {
           created_at?: string
         }
       }
+      leave_types: {
+        Row: {
+          id: string
+          school_id: string | null
+          name: string
+          description: string | null
+          days_allowed: number | null
+          is_paid: boolean
+          applicable_to: 'all' | 'teaching' | 'non-teaching' | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          school_id?: string | null
+          name: string
+          description?: string | null
+          days_allowed?: number | null
+          is_paid?: boolean
+          applicable_to?: 'all' | 'teaching' | 'non-teaching' | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string | null
+          name?: string
+          description?: string | null
+          days_allowed?: number | null
+          is_paid?: boolean
+          applicable_to?: 'all' | 'teaching' | 'non-teaching' | null
+          is_active?: boolean
+          created_at?: string
+        }
+      }
+      leave_applications: {
+        Row: {
+          id: string
+          school_id: string | null
+          applicant_type: 'student' | 'staff'
+          student_id: string | null
+          staff_id: string | null
+          leave_type_id: string | null
+          applied_by_parent_id: string | null
+          start_date: string
+          end_date: string
+          reason: string
+          status: LeaveStatus
+          approved_by: string | null
+          approved_at: string | null
+          rejection_reason: string | null
+          documents: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          school_id?: string | null
+          applicant_type: 'student' | 'staff'
+          student_id?: string | null
+          staff_id?: string | null
+          leave_type_id?: string | null
+          applied_by_parent_id?: string | null
+          start_date: string
+          end_date: string
+          reason: string
+          status?: LeaveStatus
+          approved_by?: string | null
+          approved_at?: string | null
+          rejection_reason?: string | null
+          documents?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string | null
+          applicant_type?: 'student' | 'staff'
+          student_id?: string | null
+          staff_id?: string | null
+          leave_type_id?: string | null
+          applied_by_parent_id?: string | null
+          start_date?: string
+          end_date?: string
+          reason?: string
+          status?: LeaveStatus
+          approved_by?: string | null
+          approved_at?: string | null
+          rejection_reason?: string | null
+          documents?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }
@@ -1193,6 +1287,8 @@ export type WhatsAppTemplate = Database['public']['Tables']['whatsapp_templates'
 export type WhatsAppMessage = Database['public']['Tables']['whatsapp_messages']['Row']
 export type WhatsAppBroadcast = Database['public']['Tables']['whatsapp_broadcasts']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']
+export type LeaveType = Database['public']['Tables']['leave_types']['Row']
+export type LeaveApplication = Database['public']['Tables']['leave_applications']['Row']
 
 // Razorpay Payment Gateway Types
 export interface RazorpayConfig {

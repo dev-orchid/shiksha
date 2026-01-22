@@ -74,6 +74,20 @@ var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$g
 const metadata = {
     title: "Shiksha - School Management System | Orchid Software",
     description: "Transform education management into digital excellence. Comprehensive cloud-based School Management System for student management, attendance, fees, exams, and WhatsApp integration. From 100 to 10,000+ students.",
+    icons: {
+        icon: [
+            {
+                url: '/icon.svg',
+                type: 'image/svg+xml'
+            }
+        ],
+        apple: [
+            {
+                url: '/apple-icon.svg',
+                type: 'image/svg+xml'
+            }
+        ]
+    },
     openGraph: {
         title: "Shiksha - School Management System",
         description: "Streamline administrative operations, enhance communication, and improve efficiency with our comprehensive cloud-based School Management System.",
@@ -107,12 +121,12 @@ function RootLayout({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/src/app/layout.tsx",
-            lineNumber: 49,
+            lineNumber: 57,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/layout.tsx",
-        lineNumber: 48,
+        lineNumber: 56,
         columnNumber: 5
     }, this);
 }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <!-- Background rounded square -->
+  <rect width="180" height="180" rx="40" fill="#16a34a"/>
+
+  <!-- Graduation cap icon - scaled up -->
+  <path d="M90 40L30 70L90 100L150 70L90 40Z" fill="white"/>
+  <path d="M50 82V115C50 115 65 135 90 135C115 135 130 115 130 115V82L90 102L50 82Z" fill="white" fill-opacity="0.9"/>
+  <path d="M140 75V115" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="140" cy="122" r="6" fill="white"/>
+</svg>

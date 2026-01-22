@@ -25,7 +25,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const selectId = id || label?.toLowerCase().replace(/\s+/g, '-')
 
     return (
-      <div className="w-full">
+      <div className={cn('w-full', className)}>
         {label && (
           <label
             htmlFor={selectId}
@@ -39,13 +39,12 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             ref={ref}
             className={cn(
-              'block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors appearance-none',
+              'block w-full rounded-lg border px-3 py-2 pr-10 text-sm shadow-sm transition-colors appearance-none bg-white',
               'focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary',
               error
                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                 : 'border-gray-300',
-              props.disabled && 'bg-gray-100 cursor-not-allowed',
-              className
+              props.disabled && 'bg-gray-100 cursor-not-allowed'
             )}
             {...props}
           >
