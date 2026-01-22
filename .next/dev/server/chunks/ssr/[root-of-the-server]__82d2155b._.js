@@ -139,7 +139,7 @@ function SessionProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/src/components/providers/SessionProvider.tsx",
-        lineNumber: 137,
+        lineNumber: 138,
         columnNumber: 5
     }, this);
 }

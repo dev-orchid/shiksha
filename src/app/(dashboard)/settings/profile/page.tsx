@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from '@/components/providers/SessionProvider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { ArrowLeft, User, Save, Camera, Mail, Phone, MapPin } from 'lucide-react'
+import { ArrowLeft, User, Save, Camera, Mail, Phone, MapPin, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface ProfileData {
   display_name: string
@@ -19,7 +20,9 @@ export default function ProfileSettingsPage() {
   const { profile, refreshProfile } = useSession()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<ProfileData>({
     display_name: '',
     email: '',
@@ -87,6 +90,59 @@ export default function ProfileSettingsPage() {
     setFormData(prev => ({ ...prev, [name]: value || null }))
   }
 
+  const handleImageClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif']
+    if (!validTypes.includes(file.type)) {
+      setMessage({ type: 'error', text: 'Please upload a JPG, PNG or GIF image' })
+      return
+    }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Image size must be less than 2MB' })
+      return
+    }
+
+    setUploadingImage(true)
+    setMessage(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/auth/profile/avatar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setFormData(prev => ({ ...prev, avatar_url: data.avatarUrl }))
+        setMessage({ type: 'success', text: 'Profile picture updated successfully!' })
+        refreshProfile?.()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to upload image' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'An error occurred while uploading image' })
+    } finally {
+      setUploadingImage(false)
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -133,22 +189,53 @@ export default function ProfileSettingsPage() {
           <CardContent>
             <div className="flex items-center gap-6">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold">
-                  {formData.display_name?.charAt(0)?.toUpperCase() || 'U'}
-                </div>
+                {formData.avatar_url ? (
+                  <Image
+                    src={formData.avatar_url}
+                    alt="Profile"
+                    width={96}
+                    height={96}
+                    className="w-24 h-24 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold">
+                    {formData.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                )}
                 <button
                   type="button"
-                  className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50"
+                  onClick={handleImageClick}
+                  disabled={uploadingImage}
+                  className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <Camera className="h-4 w-4 text-gray-600" />
+                  {uploadingImage ? (
+                    <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4 text-gray-600" />
+                  )}
                 </button>
               </div>
               <div>
                 <p className="text-sm text-gray-600">
                   Upload a new profile picture. JPG, PNG or GIF. Max size 2MB.
                 </p>
-                <Button type="button" variant="outline" size="sm" className="mt-2">
-                  Upload Image
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={handleImageClick}
+                  disabled={uploadingImage}
+                  icon={uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
                 </Button>
               </div>
             </div>

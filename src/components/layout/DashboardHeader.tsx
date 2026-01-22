@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSession } from '@/components/providers/SessionProvider'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ROLE_LABELS } from '@/lib/constants/roles'
 import {
   Menu,
@@ -97,11 +98,21 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100"
             >
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {profile?.displayName?.charAt(0).toUpperCase()}
-                </span>
-              </div>
+              {profile?.avatarUrl ? (
+                <Image
+                  src={profile.avatarUrl}
+                  alt={profile.displayName || 'Profile'}
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {profile?.displayName?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
               <div className="hidden sm:block text-left">
                 <p className="text-sm font-medium text-gray-900">
                   {profile?.displayName}
@@ -125,14 +136,6 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                     <p className="text-xs text-gray-500">{profile?.email}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{roleLabel}</p>
                   </div>
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    <User className="h-4 w-4" />
-                    Profile
-                  </Link>
                   <Link
                     href="/settings"
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
