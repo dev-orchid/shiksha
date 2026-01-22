@@ -105,10 +105,10 @@ export async function POST(request: Request) {
       schoolError = retryResult.error
     }
 
-    if (schoolError) {
+    if (schoolError || !newSchool) {
       console.error('Error creating school:', schoolError)
       return NextResponse.json(
-        { error: `Failed to create school: ${schoolError.message || schoolError.code || 'Unknown error'}` },
+        { error: `Failed to create school: ${schoolError?.message || schoolError?.code || 'Unknown error'}` },
         { status: 500 }
       )
     }
