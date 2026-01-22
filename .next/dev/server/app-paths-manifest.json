@@ -1,5 +1,3 @@
 {
-  "/(dashboard)/super-admin/settings/billing/page": "app/(dashboard)/super-admin/settings/billing/page.js",
-  "/api/auth/profile/route": "app/api/auth/profile/route.js",
-  "/api/super-admin/settings/billing/route": "app/api/super-admin/settings/billing/route.js"
+  "/(auth)/login/page": "app/(auth)/login/page.js"
 }

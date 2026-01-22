@@ -22,26 +22,27 @@ function SignupPageLoading() {
   )
 }
 
+interface PaymentInfo {
+  verified: boolean
+  plan_type?: string
+  school_name?: string
+  customer_name?: string
+  customer_email?: string
+  customer_phone?: string
+  student_count?: number
+  message?: string
+}
+
 function SignupPageContent() {
   const searchParams = useSearchParams()
   const paymentId = searchParams.get('payment_id')
-  const planType = searchParams.get('plan')
-  const isVerified = searchParams.get('verified') === 'true'
-
-  // Get customer info from URL params (passed from payment verification)
-  const urlName = searchParams.get('name')
-  const urlEmail = searchParams.get('email')
-  const urlPhone = searchParams.get('phone')
-  const urlSchool = searchParams.get('school')
-  const urlStudents = searchParams.get('students')
 
   const [loading, setLoading] = useState(false)
+  const [fetchingPayment, setFetchingPayment] = useState(false)
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [apiError, setApiError] = useState('')
-
-  // Check if we have pre-filled data from payment
-  const hasPaymentData = isVerified && urlName && urlEmail
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -51,18 +52,45 @@ function SignupPageContent() {
     password: '',
   })
 
-  // Pre-fill form from URL params on mount
+  // Fetch payment info securely via POST when payment_id is present
   useEffect(() => {
-    if (isVerified) {
-      setFormData(prev => ({
-        ...prev,
-        name: urlName || prev.name,
-        email: urlEmail || prev.email,
-        phone: urlPhone || prev.phone,
-        schoolName: urlSchool || prev.schoolName,
-      }))
+    async function fetchPaymentInfo() {
+      if (!paymentId) return
+
+      setFetchingPayment(true)
+      try {
+        const response = await fetch('/api/platform/payments/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payment_id: paymentId }),
+        })
+
+        const data = await response.json()
+        setPaymentInfo(data)
+
+        // Pre-fill form if payment is verified
+        if (data.verified) {
+          setFormData(prev => ({
+            ...prev,
+            name: data.customer_name || prev.name,
+            email: data.customer_email || prev.email,
+            phone: data.customer_phone || prev.phone,
+            schoolName: data.school_name || prev.schoolName,
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching payment info:', error)
+        setPaymentInfo({ verified: false, message: 'Failed to load payment details' })
+      } finally {
+        setFetchingPayment(false)
+      }
     }
-  }, [isVerified, urlName, urlEmail, urlPhone, urlSchool])
+
+    fetchPaymentInfo()
+  }, [paymentId])
+
+  // Check if we have pre-filled data from payment
+  const hasPaymentData = paymentInfo?.verified && paymentInfo?.customer_name && paymentInfo?.customer_email
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -113,8 +141,8 @@ function SignupPageContent() {
         body: JSON.stringify({
           ...formData,
           payment_id: paymentId,
-          plan_type: planType,
-          student_count: urlStudents ? parseInt(urlStudents) : undefined,
+          plan_type: paymentInfo?.plan_type,
+          student_count: paymentInfo?.student_count,
         }),
       })
 
@@ -193,8 +221,18 @@ function SignupPageContent() {
             <p className="text-gray-500 mt-2 text-[15px]">Sign up to get started</p>
           </div>
 
+          {/* Loading Payment Info */}
+          {fetchingPayment && paymentId && (
+            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                <p className="text-gray-600">Loading payment details...</p>
+              </div>
+            </div>
+          )}
+
           {/* Payment Verified Badge */}
-          {isVerified && paymentId && (
+          {paymentInfo?.verified && paymentId && (
             <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -203,11 +241,28 @@ function SignupPageContent() {
                 <div>
                   <p className="font-medium text-emerald-800">Payment Verified</p>
                   <p className="text-sm text-emerald-600">
-                    {planType ? `${planType.charAt(0).toUpperCase() + planType.slice(1)} Plan` : 'Plan'}
-                    {urlStudents && ` - ${urlStudents} students`}
+                    {paymentInfo.plan_type ? `${paymentInfo.plan_type.charAt(0).toUpperCase() + paymentInfo.plan_type.slice(1)} Plan` : 'Plan'}
+                    {paymentInfo.student_count && ` - ${paymentInfo.student_count} students`}
                   </p>
                 </div>
                 <CreditCard className="h-5 w-5 text-emerald-400 ml-auto" />
+              </div>
+            </div>
+          )}
+
+          {/* Payment Error */}
+          {paymentInfo && !paymentInfo.verified && paymentId && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-amber-800">Payment Issue</p>
+                  <p className="text-sm text-amber-600">
+                    {paymentInfo.message || 'Unable to verify payment. You can still create an account.'}
+                  </p>
+                </div>
               </div>
             </div>
           )}

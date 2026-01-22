@@ -92,37 +92,35 @@ export async function POST(request: NextRequest) {
         customer_phone: customer_info.customer_phone,
         student_count: customer_info.student_count,
         status: 'verified',
-        created_at: new Date().toISOString(),
       })
       .select('id')
       .single()
 
     if (paymentError) {
-      // If table doesn't exist, that's okay for now - log but continue
-      console.error('Error storing payment record:', paymentError)
-      // Still return success since payment is verified
+      // Log detailed error for debugging
+      console.error('Error storing payment record:', JSON.stringify(paymentError, null, 2))
+      console.error('Insert data was:', JSON.stringify({
+        razorpay_order_id,
+        razorpay_payment_id,
+        plan_type: customer_info.plan_type,
+        school_name: customer_info.school_name,
+        customer_name: customer_info.customer_name,
+        customer_email: customer_info.customer_email,
+        customer_phone: customer_info.customer_phone,
+        student_count: customer_info.student_count,
+      }, null, 2))
+      // Continue anyway since payment is verified
     }
 
-    // Return success with redirect URL including customer info
+    // Return success with redirect URL - only include payment_id for security
+    // Customer data will be fetched from database on signup page
     const paymentId = payment?.id || razorpay_payment_id
-
-    // Encode customer info in URL params for signup pre-fill
-    const params = new URLSearchParams({
-      payment_id: paymentId,
-      plan: customer_info.plan_type,
-      verified: 'true',
-      name: customer_info.customer_name,
-      email: customer_info.customer_email,
-      phone: customer_info.customer_phone,
-      school: customer_info.school_name,
-      students: customer_info.student_count.toString(),
-    })
 
     return NextResponse.json({
       success: true,
       message: 'Payment verified successfully',
       payment_id: paymentId,
-      redirect_url: `/signup?${params.toString()}`,
+      redirect_url: `/signup?payment_id=${paymentId}`,
     })
   } catch (error) {
     console.error('Error verifying payment:', error)

@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
- * GET /api/platform/payments/info
+ * POST /api/platform/payments/info
  * Get payment information by payment_id
  * Used for pre-filling signup form after payment
+ * Using POST to avoid exposing payment data in URL/logs
  */
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const paymentId = searchParams.get('payment_id')
+    const body = await request.json()
+    const { payment_id: paymentId } = body
 
     if (!paymentId) {
       return NextResponse.json(
@@ -28,23 +29,30 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (error || !payment) {
-      // Payment record might not exist in DB if table wasn't created
-      // Return basic info from URL params
+      // Payment record not found
       return NextResponse.json({
         verified: false,
-        message: 'Payment details not found',
+        message: 'Payment details not found. Please contact support.',
       })
     }
 
-    // Return payment info (without sensitive data)
+    // Check if payment was already used
+    if (payment.status === 'used') {
+      return NextResponse.json({
+        verified: false,
+        message: 'This payment has already been used to create an account.',
+      })
+    }
+
+    // Return payment info (without sensitive Razorpay data)
     return NextResponse.json({
+      verified: payment.status === 'verified',
       plan_type: payment.plan_type,
       school_name: payment.school_name,
       customer_name: payment.customer_name,
       customer_email: payment.customer_email,
       customer_phone: payment.customer_phone,
       student_count: payment.student_count,
-      verified: payment.status === 'verified',
     })
   } catch (error) {
     console.error('Error fetching payment info:', error)
