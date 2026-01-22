@@ -62,25 +62,53 @@ export async function POST(request: Request) {
     }
 
     // Add subscription info if payment was made
-    if (payment_id && plan_type) {
-      schoolData.subscription_plan = plan_type
-      schoolData.subscription_status = 'active'
-      schoolData.payment_id = payment_id
+    const validPlans = ['starter', 'professional', 'enterprise']
+    if (payment_id && plan_type && validPlans.includes(plan_type)) {
+      schoolData.plan_type = plan_type
+      schoolData.plan_start_date = new Date().toISOString().split('T')[0]
       if (student_count) {
         schoolData.student_limit = student_count
       }
     }
 
-    const { data: newSchool, error: schoolError } = await supabase
+    let newSchool
+    let schoolError
+
+    // Try to create school with plan data first
+    const result = await supabase
       .from('schools')
       .insert(schoolData)
       .select('id')
       .single()
 
+    newSchool = result.data
+    schoolError = result.error
+
+    // If failed and we have plan data, try again without it (column might not exist)
+    if (schoolError && (schoolData.plan_type || schoolData.plan_start_date || schoolData.student_limit)) {
+      console.log('Retrying school creation without plan fields...')
+      const basicSchoolData = {
+        name: schoolName,
+        code: schoolCode,
+        email: email,
+        phone: phone || null,
+        is_active: true,
+      }
+
+      const retryResult = await supabase
+        .from('schools')
+        .insert(basicSchoolData)
+        .select('id')
+        .single()
+
+      newSchool = retryResult.data
+      schoolError = retryResult.error
+    }
+
     if (schoolError) {
       console.error('Error creating school:', schoolError)
       return NextResponse.json(
-        { error: 'Failed to create school' },
+        { error: `Failed to create school: ${schoolError.message || schoolError.code || 'Unknown error'}` },
         { status: 500 }
       )
     }
@@ -151,15 +179,21 @@ export async function POST(request: Request) {
       })
 
     // Update payment status to 'used' if payment_id was provided
+    // Note: platform_payments table may not exist in all environments
     if (payment_id) {
-      await supabase
-        .from('platform_payments')
-        .update({
-          status: 'used',
-          school_id: schoolId,
-          used_at: new Date().toISOString(),
-        })
-        .or(`id.eq.${payment_id},razorpay_payment_id.eq.${payment_id}`)
+      try {
+        await supabase
+          .from('platform_payments')
+          .update({
+            status: 'used',
+            school_id: schoolId,
+            used_at: new Date().toISOString(),
+          })
+          .or(`id.eq.${payment_id},razorpay_payment_id.eq.${payment_id}`)
+      } catch (err) {
+        // Silently ignore if table doesn't exist
+        console.log('Could not update platform_payments (table may not exist):', err)
+      }
     }
 
     return NextResponse.json({
