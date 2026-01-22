@@ -1,11 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, UserPlus, Check, CheckCircle2, CreditCard } from 'lucide-react'
 
+// Wrapper component to handle Suspense for useSearchParams
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<SignupPageLoading />}>
+      <SignupPageContent />
+    </Suspense>
+  )
+}
+
+function SignupPageLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+    </div>
+  )
+}
+
+function SignupPageContent() {
   const searchParams = useSearchParams()
   const paymentId = searchParams.get('payment_id')
   const planType = searchParams.get('plan')
