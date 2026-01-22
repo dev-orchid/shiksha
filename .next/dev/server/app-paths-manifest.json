@@ -1,22 +1,5 @@
 {
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(auth)/signup/page": "app/(auth)/signup/page.js",
-  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
-  "/(dashboard)/super-admin/page": "app/(dashboard)/super-admin/page.js",
   "/(dashboard)/super-admin/settings/billing/page": "app/(dashboard)/super-admin/settings/billing/page.js",
-  "/api/academic-years/route": "app/api/academic-years/route.js",
   "/api/auth/profile/route": "app/api/auth/profile/route.js",
-  "/api/auth/signup/route": "app/api/auth/signup/route.js",
-  "/api/platform/payments/config/route": "app/api/platform/payments/config/route.js",
-  "/api/platform/payments/info/route": "app/api/platform/payments/info/route.js",
-  "/api/platform/payments/initiate/route": "app/api/platform/payments/initiate/route.js",
-  "/api/platform/payments/verify/route": "app/api/platform/payments/verify/route.js",
-  "/api/settings/school/route": "app/api/settings/school/route.js",
-  "/api/staff/route": "app/api/staff/route.js",
-  "/api/students/route": "app/api/students/route.js",
-  "/api/super-admin/schools/route": "app/api/super-admin/schools/route.js",
-  "/api/super-admin/settings/billing/route": "app/api/super-admin/settings/billing/route.js",
-  "/api/super-admin/settings/razorpay/test/route": "app/api/super-admin/settings/razorpay/test/route.js",
-  "/page": "app/page.js"
+  "/api/super-admin/settings/billing/route": "app/api/super-admin/settings/billing/route.js"
 }
