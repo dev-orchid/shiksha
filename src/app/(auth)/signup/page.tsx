@@ -1,14 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, UserPlus, Check } from 'lucide-react'
+import { Eye, EyeOff, Loader2, UserPlus, Check, CheckCircle2, CreditCard } from 'lucide-react'
 
 export default function SignupPage() {
+  const searchParams = useSearchParams()
+  const paymentId = searchParams.get('payment_id')
+  const planType = searchParams.get('plan')
+  const isVerified = searchParams.get('verified') === 'true'
+
+  // Get customer info from URL params (passed from payment verification)
+  const urlName = searchParams.get('name')
+  const urlEmail = searchParams.get('email')
+  const urlPhone = searchParams.get('phone')
+  const urlSchool = searchParams.get('school')
+  const urlStudents = searchParams.get('students')
+
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [apiError, setApiError] = useState('')
+
+  // Check if we have pre-filled data from payment
+  const hasPaymentData = isVerified && urlName && urlEmail
 
   const [formData, setFormData] = useState({
     name: '',
@@ -17,6 +33,19 @@ export default function SignupPage() {
     schoolName: '',
     password: '',
   })
+
+  // Pre-fill form from URL params on mount
+  useEffect(() => {
+    if (isVerified) {
+      setFormData(prev => ({
+        ...prev,
+        name: urlName || prev.name,
+        email: urlEmail || prev.email,
+        phone: urlPhone || prev.phone,
+        schoolName: urlSchool || prev.schoolName,
+      }))
+    }
+  }, [isVerified, urlName, urlEmail, urlPhone, urlSchool])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -64,7 +93,12 @@ export default function SignupPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          payment_id: paymentId,
+          plan_type: planType,
+          student_count: urlStudents ? parseInt(urlStudents) : undefined,
+        }),
       })
 
       const data = await response.json()
@@ -142,6 +176,34 @@ export default function SignupPage() {
             <p className="text-gray-500 mt-2 text-[15px]">Sign up to get started</p>
           </div>
 
+          {/* Payment Verified Badge */}
+          {isVerified && paymentId && (
+            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-emerald-800">Payment Verified</p>
+                  <p className="text-sm text-emerald-600">
+                    {planType ? `${planType.charAt(0).toUpperCase() + planType.slice(1)} Plan` : 'Plan'}
+                    {urlStudents && ` - ${urlStudents} students`}
+                  </p>
+                </div>
+                <CreditCard className="h-5 w-5 text-emerald-400 ml-auto" />
+              </div>
+            </div>
+          )}
+
+          {/* Info about pre-filled form */}
+          {hasPaymentData && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                Your details have been pre-filled from your payment. Just set a password to complete signup.
+              </p>
+            </div>
+          )}
+
           {/* Form Card */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -158,9 +220,10 @@ export default function SignupPage() {
                   placeholder="John Doe"
                   value={formData.name}
                   onChange={(e) => updateForm('name', e.target.value)}
+                  readOnly={!!hasPaymentData}
                   className={`w-full px-4 py-3 rounded-lg border ${
                     errors.name ? 'border-red-300' : 'border-gray-300'
-                  } focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
+                  } ${hasPaymentData ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''} focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
                 />
                 {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
               </div>
@@ -172,9 +235,10 @@ export default function SignupPage() {
                   placeholder="name@example.com"
                   value={formData.email}
                   onChange={(e) => updateForm('email', e.target.value)}
+                  readOnly={!!hasPaymentData}
                   className={`w-full px-4 py-3 rounded-lg border ${
                     errors.email ? 'border-red-300' : 'border-gray-300'
-                  } focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
+                  } ${hasPaymentData ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''} focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
                 />
                 {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
               </div>
@@ -186,9 +250,10 @@ export default function SignupPage() {
                   placeholder="+91 9876543210"
                   value={formData.phone}
                   onChange={(e) => updateForm('phone', e.target.value)}
+                  readOnly={!!hasPaymentData}
                   className={`w-full px-4 py-3 rounded-lg border ${
                     errors.phone ? 'border-red-300' : 'border-gray-300'
-                  } focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
+                  } ${hasPaymentData ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''} focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
                 />
                 {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
               </div>
@@ -200,9 +265,10 @@ export default function SignupPage() {
                   placeholder="ABC International School"
                   value={formData.schoolName}
                   onChange={(e) => updateForm('schoolName', e.target.value)}
+                  readOnly={!!hasPaymentData}
                   className={`w-full px-4 py-3 rounded-lg border ${
                     errors.schoolName ? 'border-red-300' : 'border-gray-300'
-                  } focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
+                  } ${hasPaymentData ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''} focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all outline-none text-gray-900 placeholder:text-gray-400 text-[15px]`}
                 />
                 {errors.schoolName && <p className="text-sm text-red-500 mt-1">{errors.schoolName}</p>}
               </div>

@@ -1,13 +1,92 @@
-[00:00:00.769] Server  LOG     ✓ Ready in 638ms
-[00:00:03.416] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:00:04.288] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:09.769] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:01:17.030] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:02:55.563] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:03:15.012] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:03:56.214] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:03:56.362] Browser WARN    Image with src "http://localhost:3000/orhcid_logo_black_font.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
-[00:03:57.967] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:05:14.584] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:06:52.592] Server  LOG     [Razorpay Verify] Payment processed successfully: {}
-[00:06:53.035] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:00:01.156] Server  LOG     ✓ Ready in 1007ms
+[00:00:04.409] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:00:04.738] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:04.853] Browser WARN    Image with src "http://localhost:3000/orhcid_logo_black_font.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[00:13:27.734] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:15:50.258] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:15:55.980] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:15:55.980] Browser WARN    Image with src "http://localhost:3000/orhcid_logo_black_font.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[00:18:47.213] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:22:58.449] Server  LOG     ✓ Compiled in 68ms
+[00:23:06.944] Server  LOG     ✓ Compiled in 38ms
+[00:23:12.771] Server  LOG     ✓ Compiled in 36ms
+[00:23:20.150] Server  LOG     ✓ Compiled in 35ms
+[00:23:34.297] Server  LOG     ✓ Compiled in 35ms
+[00:24:09.980] Server  LOG     ✓ Compiled in 66ms
+[00:25:13.245] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:25:34.372] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:25:56.481] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:26:11.072] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:27:07.054] Server  LOG     ✓ Compiled in 141ms
+[00:27:41.292] Server  LOG     ✓ Compiled in 217ms
+[00:27:48.944] Server  LOG     ✓ Compiled in 38ms
+[00:27:55.809] Server  LOG     ✓ Compiled in 34ms
+[00:28:06.502] Server  LOG     ✓ Compiled in 41ms
+[00:29:01.503] Server  LOG     ✓ Compiled in 53ms
+[00:29:16.944] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:30:17.289] Server  LOG     ✓ Compiled in 36ms
+[00:30:40.112] Server  LOG     ✓ Compiled in 35ms
+[00:32:17.684] Server  LOG     ✓ Compiled in 80ms
+[00:33:09.582] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:33:14.363] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:33:15.242] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:34:22.370] Server  ERROR   Error updating payment gateway: {}
+[00:34:58.665] Server  ERROR   Error updating payment gateway: {}
+[00:35:44.276] Server  ERROR   Error updating payment gateway: {}
+[00:35:53.225] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:36:28.129] Server  ERROR   Error updating payment gateway: {}
+[00:37:50.174] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:38:06.626] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:38:08.711] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:38:08.711] Browser WARN    Image with src "http://localhost:3000/orhcid_logo_black_font.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[00:40:14.763] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:40:14.880] Browser WARN    Image with src "http://localhost:3000/orhcid_logo_black_font.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[00:41:08.141] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:41:08.253] Browser WARN    Image with src "http://localhost:3000/orhcid_logo_black_font.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[00:43:06.012] Server  ERROR   Error storing payment record: {}
+[00:43:06.683] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:44:21.948] Server  ERROR   Error creating school: {}
+[00:46:19.972] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:46:29.500] Server  LOG     ✓ Compiled in 43ms
+[00:46:29.556] Browser ERROR   uncaughtError: ReferenceError: paymentInfo is not defined
+[00:46:56.150] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:46:56.238] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:46:56.243] Server  LOG     ✓ Compiled in 33ms
+[00:46:56.305] Server  ERROR   ⨯ ReferenceError: paymentInfo is not defined
+[00:46:56.328] Browser ERROR   uncaughtError: ReferenceError: paymentInfo is not defined
+[00:46:56.715] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:46:57.012] Browser ERROR   uncaughtError: ReferenceError: paymentInfo is not defined
+[00:47:10.333] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:47:10.381] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:47:10.383] Server  LOG     ✓ Compiled in 36ms
+[00:47:10.433] Server  ERROR   ⨯ ReferenceError: paymentInfo is not defined
+[00:47:10.532] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:47:10.653] Browser ERROR   uncaughtError: ReferenceError: paymentInfo is not defined
+[00:47:31.534] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:47:31.580] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:47:31.582] Server  LOG     ✓ Compiled in 37ms
+[00:47:31.739] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:47:47.583] Server  LOG     ✓ Compiled in 38ms
+[00:49:16.260] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+[00:49:16.469] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:49:19.316] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:49:20.085] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:49:20.332] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:27:18.764] Browser ERROR   {}
+[02:27:18.969] Browser ERROR   {}
+[02:27:19.377] Browser ERROR   {}
+[02:27:20.183] Browser ERROR   {}
+[02:45:17.601] Browser ERROR   {}
+[03:22:45.341] Browser ERROR   {}
+[03:22:45.549] Browser ERROR   {}
+[03:22:45.957] Browser ERROR   {}
+[03:40:04.606] Browser ERROR   {}
+[03:40:06.176] Browser ERROR   {}
+[04:20:25.221] Browser ERROR   {}
+[04:20:25.424] Browser ERROR   {}
+[04:20:25.831] Browser ERROR   {}
+[04:20:26.637] Browser ERROR   {}
+[04:20:30.107] Browser ERROR   {}
+[04:20:34.108] Browser ERROR   {}
+[04:20:41.114] Browser ERROR   {}
+[04:20:54.107] Browser ERROR   {}

@@ -1,8 +1,70 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, Users, BookOpen, DollarSign, BarChart3, CheckCircle2, Shield, Cloud, Smartphone, Zap } from 'lucide-react'
+import { PlanCheckoutModal } from '@/components/landing/PlanCheckoutModal'
+
+interface PlanConfig {
+  name: string
+  price: number | null
+  currency: string
+  period: string
+  student_limit: number | null
+  admin_limit: number | null
+  features: string[]
+}
+
+interface PaymentConfig {
+  is_enabled: boolean
+  key_id: string | null
+  display_name: string
+  theme_color: string
+  mode: string
+  pricing_plans: {
+    starter: PlanConfig
+    professional: PlanConfig
+    enterprise: PlanConfig
+  }
+}
 
 export default function LandingPage() {
+  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'professional' | null>(null)
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null)
+
+  useEffect(() => {
+    // Fetch payment configuration on mount
+    const fetchPaymentConfig = async () => {
+      try {
+        const response = await fetch('/api/platform/payments/config')
+        if (response.ok) {
+          const data = await response.json()
+          setPaymentConfig(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch payment config:', error)
+      }
+    }
+    fetchPaymentConfig()
+  }, [])
+
+  const handleGetStarted = (plan: 'starter' | 'professional') => {
+    if (paymentConfig?.is_enabled) {
+      setSelectedPlan(plan)
+      setIsCheckoutOpen(true)
+    } else {
+      // Fallback to external contact page
+      window.open('https://orchidsw.com/contact', '_blank')
+    }
+  }
+
+  const handleCloseCheckout = () => {
+    setIsCheckoutOpen(false)
+    setSelectedPlan(null)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Navigation */}
@@ -297,7 +359,7 @@ export default function LandingPage() {
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start space-x-3">
                   <CheckCircle2 className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-300">Up to 300 students</span>
+                  <span className="text-gray-300">Up to 500 students</span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle2 className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
@@ -305,7 +367,11 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle2 className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-300">5 admin users</span>
+                  <span className="text-gray-300">3 admin users</span>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <CheckCircle2 className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-300">Telegram integration</span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle2 className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
@@ -316,14 +382,12 @@ export default function LandingPage() {
                   <span className="text-gray-300">Monthly backups</span>
                 </li>
               </ul>
-              <a
-                href="https://orchidsw.com/contact"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => handleGetStarted('starter')}
                 className="block w-full text-center px-6 py-3 border border-orange-500/50 rounded-lg font-semibold hover:bg-orange-900/30 transition-all"
               >
                 Get Started
-              </a>
+              </button>
             </div>
 
             {/* Professional Plan */}
@@ -348,7 +412,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle2 className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-300">15 admin users</span>
+                  <span className="text-gray-300">5 admin users</span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle2 className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
@@ -367,14 +431,12 @@ export default function LandingPage() {
                   <span className="text-gray-300">Custom reports</span>
                 </li>
               </ul>
-              <a
-                href="https://orchidsw.com/contact"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => handleGetStarted('professional')}
                 className="block w-full text-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-500 rounded-lg font-semibold hover:from-orange-600 hover:to-orange-600 transition-all"
               >
                 Get Started
-              </a>
+              </button>
             </div>
 
             {/* Enterprise Plan */}
@@ -535,6 +597,14 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Checkout Modal */}
+      <PlanCheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={handleCloseCheckout}
+        planType={selectedPlan}
+        paymentConfig={paymentConfig}
+      />
     </div>
   )
 }

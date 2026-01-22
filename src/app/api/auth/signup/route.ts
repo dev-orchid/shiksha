@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, email, phone, schoolName, password } = body
+    const { name, email, phone, schoolName, password, payment_id, plan_type, student_count } = body
 
     // Validate required fields
     if (!name || !email || !password || !schoolName) {
@@ -52,15 +52,28 @@ export async function POST(request: Request) {
     // Only parent accounts should share the same school_id (handled separately)
     const schoolCode = `${schoolName.substring(0, 6).toUpperCase().replace(/\s/g, '')}${Date.now().toString(36).toUpperCase()}`
 
+    // Build school data with optional payment info
+    const schoolData: Record<string, unknown> = {
+      name: schoolName,
+      code: schoolCode,
+      email: email,
+      phone: phone || null,
+      is_active: true,
+    }
+
+    // Add subscription info if payment was made
+    if (payment_id && plan_type) {
+      schoolData.subscription_plan = plan_type
+      schoolData.subscription_status = 'active'
+      schoolData.payment_id = payment_id
+      if (student_count) {
+        schoolData.student_limit = student_count
+      }
+    }
+
     const { data: newSchool, error: schoolError } = await supabase
       .from('schools')
-      .insert({
-        name: schoolName,
-        code: schoolCode, // Unique code using timestamp
-        email: email,
-        phone: phone || null,
-        is_active: true,
-      })
+      .insert(schoolData)
       .select('id')
       .single()
 
@@ -136,6 +149,18 @@ export async function POST(request: Request) {
         joining_date: new Date().toISOString().split('T')[0], // Correct column name
         status: 'active',
       })
+
+    // Update payment status to 'used' if payment_id was provided
+    if (payment_id) {
+      await supabase
+        .from('platform_payments')
+        .update({
+          status: 'used',
+          school_id: schoolId,
+          used_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${payment_id},razorpay_payment_id.eq.${payment_id}`)
+    }
 
     return NextResponse.json({
       success: true,

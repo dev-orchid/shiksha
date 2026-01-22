@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { ArrowLeft, CreditCard, Check, Save, Loader2, X, Pencil } from 'lucide-react'
+import { Input } from '@/components/ui/Input'
+import { ArrowLeft, CreditCard, Check, Save, Loader2, X, Pencil, Eye, EyeOff, TestTube, CheckCircle, XCircle } from 'lucide-react'
 import Link from 'next/link'
 
 interface PlanConfig {
@@ -24,8 +25,14 @@ interface PricingPlans {
 
 interface PaymentGateway {
   provider: string
-  api_key?: string
+  key_id: string
+  key_secret: string
+  webhook_secret: string
+  mode: 'test' | 'live'
+  is_enabled: boolean
   is_configured: boolean
+  display_name: string
+  theme_color: string
 }
 
 export default function BillingSettingsPage() {
@@ -33,6 +40,13 @@ export default function BillingSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editingPlan, setEditingPlan] = useState<string | null>(null)
+
+  // Payment gateway state
+  const [showSecret, setShowSecret] = useState(false)
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [hasExistingConfig, setHasExistingConfig] = useState(false)
 
   const [pricingPlans, setPricingPlans] = useState<PricingPlans>({
     starter: {
@@ -66,8 +80,14 @@ export default function BillingSettingsPage() {
 
   const [paymentGateway, setPaymentGateway] = useState<PaymentGateway>({
     provider: 'razorpay',
-    api_key: '',
+    key_id: '',
+    key_secret: '',
+    webhook_secret: '',
+    mode: 'test',
+    is_enabled: false,
     is_configured: false,
+    display_name: '',
+    theme_color: '#f97316',
   })
 
   const [editForm, setEditForm] = useState<PlanConfig | null>(null)
@@ -85,7 +105,19 @@ export default function BillingSettingsPage() {
           setPricingPlans(data.pricing_plans)
         }
         if (data.payment_gateway) {
-          setPaymentGateway(data.payment_gateway)
+          const pg = data.payment_gateway
+          setHasExistingConfig(!!pg.is_configured)
+          setPaymentGateway({
+            provider: pg.provider || 'razorpay',
+            key_id: pg.key_id || '',
+            key_secret: pg.key_secret || '',
+            webhook_secret: pg.webhook_secret || '',
+            mode: pg.mode || 'test',
+            is_enabled: pg.is_enabled || false,
+            is_configured: pg.is_configured || false,
+            display_name: pg.display_name || '',
+            theme_color: pg.theme_color || '#f97316',
+          })
         }
       }
     } catch (error) {
@@ -134,6 +166,69 @@ export default function BillingSettingsPage() {
     }
   }
 
+  const handleTestConnection = async () => {
+    if (!paymentGateway.key_id || !paymentGateway.key_secret) {
+      setTestResult({
+        success: false,
+        message: 'Please enter Key ID and Key Secret first',
+      })
+      return
+    }
+
+    // Don't test with masked values
+    if (paymentGateway.key_secret === '••••••••••••••••') {
+      setTestResult({
+        success: false,
+        message: 'Please enter a new Key Secret to test',
+      })
+      return
+    }
+
+    setTesting(true)
+    setTestResult(null)
+
+    try {
+      const response = await fetch('/api/super-admin/settings/razorpay/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key_id: paymentGateway.key_id,
+          key_secret: paymentGateway.key_secret,
+        }),
+      })
+
+      const data = await response.json()
+      setTestResult({
+        success: data.success,
+        message: data.message,
+      })
+    } catch {
+      setTestResult({
+        success: false,
+        message: 'Failed to test connection',
+      })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const handlePaymentGatewayChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target
+    const checked = (e.target as HTMLInputElement).checked
+
+    setPaymentGateway((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }))
+
+    // Clear test result when credentials change
+    if (name === 'key_id' || name === 'key_secret') {
+      setTestResult(null)
+    }
+  }
+
   const handleSavePaymentGateway = async () => {
     setSaving(true)
     setMessage(null)
@@ -145,18 +240,28 @@ export default function BillingSettingsPage() {
         body: JSON.stringify({
           payment_gateway: {
             ...paymentGateway,
-            is_configured: !!paymentGateway.api_key,
+            is_configured: !!(paymentGateway.key_id && paymentGateway.key_secret && paymentGateway.key_secret !== '••••••••••••••••'),
           },
         }),
       })
 
       if (response.ok) {
+        const data = await response.json()
+        setHasExistingConfig(true)
+        // Update with masked values from response
+        if (data.payment_gateway) {
+          setPaymentGateway(prev => ({
+            ...prev,
+            key_secret: data.payment_gateway.key_secret || prev.key_secret,
+            webhook_secret: data.payment_gateway.webhook_secret || prev.webhook_secret,
+          }))
+        }
         setMessage({ type: 'success', text: 'Payment settings saved successfully!' })
       } else {
         const data = await response.json()
         setMessage({ type: 'error', text: data.error || 'Failed to save payment settings' })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'An error occurred while saving' })
     } finally {
       setSaving(false)
@@ -404,66 +509,262 @@ export default function BillingSettingsPage() {
       )}
 
       {/* Payment Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Gateway Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Razorpay Credentials
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Payment Gateway
               </label>
               <select
+                name="provider"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 value={paymentGateway.provider}
-                onChange={(e) =>
-                  setPaymentGateway({ ...paymentGateway, provider: e.target.value })
-                }
+                onChange={handlePaymentGatewayChange}
               >
                 <option value="razorpay">Razorpay</option>
-                <option value="stripe">Stripe</option>
-                <option value="manual">Manual</option>
+                <option value="stripe">Stripe (Coming Soon)</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Enter API key"
-                value={paymentGateway.api_key || ''}
-                onChange={(e) =>
-                  setPaymentGateway({ ...paymentGateway, api_key: e.target.value })
-                }
+
+            <Input
+              label="Key ID"
+              name="key_id"
+              value={paymentGateway.key_id}
+              onChange={handlePaymentGatewayChange}
+              placeholder="rzp_test_xxxxxxxxxxxxx"
+            />
+
+            <div className="relative">
+              <Input
+                label="Key Secret"
+                name="key_secret"
+                type={showSecret ? 'text' : 'password'}
+                value={paymentGateway.key_secret}
+                onChange={handlePaymentGatewayChange}
+                placeholder={hasExistingConfig ? 'Enter new secret to change' : 'Enter Key Secret'}
               />
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Status:</span>
-              <span
-                className={`text-sm px-2 py-1 rounded-full ${
-                  paymentGateway.is_configured
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-yellow-100 text-yellow-700'
-                }`}
+              <button
+                type="button"
+                onClick={() => setShowSecret(!showSecret)}
+                className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
               >
-                {paymentGateway.is_configured ? 'Configured' : 'Not Configured'}
-              </span>
+                {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
-          </div>
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSavePaymentGateway}
-              loading={saving}
-              icon={<Save className="h-4 w-4" />}
-            >
-              Save Payment Settings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="relative">
+              <Input
+                label="Webhook Secret (Optional)"
+                name="webhook_secret"
+                type={showWebhookSecret ? 'text' : 'password'}
+                value={paymentGateway.webhook_secret}
+                onChange={handlePaymentGatewayChange}
+                placeholder="For webhook signature verification"
+              />
+              <button
+                type="button"
+                onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+              >
+                {showWebhookSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={testing}
+                icon={
+                  testing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <TestTube className="h-4 w-4" />
+                  )
+                }
+              >
+                {testing ? 'Testing...' : 'Test Connection'}
+              </Button>
+
+              {testResult && (
+                <div
+                  className={`mt-3 flex items-center gap-2 text-sm ${
+                    testResult.success ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {testResult.success ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    <XCircle className="h-4 w-4" />
+                  )}
+                  {testResult.message}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuration</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mode
+              </label>
+              <select
+                name="mode"
+                value={paymentGateway.mode}
+                onChange={handlePaymentGatewayChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+              >
+                <option value="test">Test Mode</option>
+                <option value="live">Live Mode</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                {paymentGateway.mode === 'test'
+                  ? 'Use test mode for development and testing'
+                  : 'Live mode processes real payments'}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <label className="font-medium text-gray-700">
+                  Enable Payment Gateway
+                </label>
+                <p className="text-sm text-gray-500">
+                  Allow subscription payments on landing page
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_enabled"
+                  checked={paymentGateway.is_enabled}
+                  onChange={handlePaymentGatewayChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+
+            <Input
+              label="Display Name (Optional)"
+              name="display_name"
+              value={paymentGateway.display_name}
+              onChange={handlePaymentGatewayChange}
+              placeholder="Shown on checkout (e.g., Shiksha SMS)"
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Theme Color (Optional)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  name="theme_color"
+                  value={paymentGateway.theme_color}
+                  onChange={handlePaymentGatewayChange}
+                  className="h-10 w-14 rounded border border-gray-300 cursor-pointer"
+                />
+                <Input
+                  name="theme_color"
+                  value={paymentGateway.theme_color}
+                  onChange={handlePaymentGatewayChange}
+                  placeholder="#f97316"
+                  className="flex-1"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Customize the checkout popup color
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Status:</span>
+                <span
+                  className={`text-sm px-2 py-1 rounded-full ${
+                    paymentGateway.is_configured
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-yellow-100 text-yellow-700'
+                  }`}
+                >
+                  {paymentGateway.is_configured ? 'Configured' : 'Not Configured'}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Setup Instructions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
+              <li>
+                Create a Razorpay account at{' '}
+                <a
+                  href="https://dashboard.razorpay.com/signup"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  dashboard.razorpay.com
+                </a>
+              </li>
+              <li>
+                Go to Settings → API Keys and generate your Key ID and Key Secret
+              </li>
+              <li>
+                Copy the credentials and paste them above
+              </li>
+              <li>
+                Click &quot;Test Connection&quot; to verify your credentials
+              </li>
+              <li>
+                For webhooks, go to Settings → Webhooks and add:{' '}
+                <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+                  {typeof window !== 'undefined'
+                    ? `${window.location.origin}/api/platform/payments/webhook`
+                    : '/api/platform/payments/webhook'}
+                </code>
+              </li>
+              <li>
+                Select &quot;payment.captured&quot; and &quot;payment.failed&quot; events
+              </li>
+              <li>
+                Copy the Webhook Secret and paste it above
+              </li>
+              <li>
+                Toggle &quot;Enable Payment Gateway&quot; when ready to accept payments
+              </li>
+            </ol>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex justify-end">
+        <Button
+          onClick={handleSavePaymentGateway}
+          loading={saving}
+          icon={<Save className="h-4 w-4" />}
+        >
+          Save Payment Settings
+        </Button>
+      </div>
     </div>
   )
 }
