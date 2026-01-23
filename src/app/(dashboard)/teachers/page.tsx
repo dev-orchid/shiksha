@@ -17,6 +17,7 @@ import {
   Phone,
   Mail,
   GraduationCap,
+  IdCard,
 } from 'lucide-react'
 import { getEmployeeTypeLabel } from '@/lib/constants/employee-types'
 
@@ -187,6 +188,11 @@ export default function TeachersPage() {
           <p className="text-gray-500 mt-1">Manage all staff members</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/teachers/id-cards">
+            <Button variant="outline" icon={<IdCard className="h-4 w-4" />}>
+              Bulk ID Cards
+            </Button>
+          </Link>
           <Button variant="outline" icon={<Download className="h-4 w-4" />}>
             Export
           </Button>

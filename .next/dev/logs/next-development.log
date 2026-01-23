@@ -1,44 +1,68 @@
-[00:00:00.913] Server  LOG     ✓ Ready in 784ms
-[00:00:04.748] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:00:04.910] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:05.334] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:43.526] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:10:55.134] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:33:46.682] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:34:56.457] Server  ERROR   Upload error: StorageApiError: Bucket not found
-[00:37:46.931] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:37:51.840] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:39:06.732] Server  LOG     ✓ Compiled in 40ms
-[00:39:22.586] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:39:22.587] Server  LOG     ✓ Compiled in 107ms
-[00:39:22.637] Server  LOG     ✓ Compiled in 0ms
-[00:39:28.522] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:40:14.168] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/components/providers/SessionProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-[00:40:14.170] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/components/providers/SessionProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-[00:40:14.227] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:40:14.229] Server  LOG     ✓ Compiled in 35ms
-[00:40:14.318] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:40:14.489] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:40:18.493] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:40:45.335] Browser WARN    Image with src "https://szvlbkowmhpubjjkijnp.supabase.co/storage/v1/object/public/avatars/avatars/28c4a120-63d0-48af-99b9-918b55446fff-1769093496992.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
-Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
-[00:47:57.445] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:48:01.311] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:48:17.839] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:48:23.538] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:48:29.883] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:48:32.472] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:49:06.151] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:49:14.773] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:49:19.611] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:51:45.814] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:51:45.816] Server  LOG     ✓ Compiled in 69ms
-[00:51:48.280] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:52:04.509] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[00:52:04.646] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[00:52:15.830] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[01:09:14.238] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:09:24.107] Server  WARN    ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
-[01:09:27.187] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
-[01:11:31.774] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[01:11:41.251] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:00:01.726] Server  LOG     ✓ Ready in 1579ms
+[00:00:16.187] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:16.328] Browser WARN    Image with src "http://localhost:3000/orhcid_logo_black_font.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[00:01:06.573] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:03:56.293] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:04:33.950] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:14:17.639] Server  LOG     ✓ Compiled in 127ms
+[00:14:20.222] Server  LOG     ✓ Compiled in 120ms
+[00:14:20.409] Server  LOG     ✓ Compiled in 166ms
+[00:14:20.464] Server  LOG     ✓ Compiled in 51ms
+[00:22:33.764] Server  LOG     ✓ Compiled in 191ms
+[00:25:30.649] Server  LOG     ✓ Compiled in 79ms
+[00:26:59.661] Server  LOG     ✓ Compiled in 101ms
+[00:26:59.857] Server  LOG     ✓ Compiled in 113ms
+[00:27:06.338] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:27:31.493] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:32:24.529] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:33:21.358] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:35:39.797] Server  LOG     ✓ Compiled in 44ms
+[00:35:59.821] Server  LOG     ✓ Compiled in 40ms
+[00:38:16.739] Server  LOG     ✓ Compiled in 38ms
+[00:38:27.223] Server  LOG     ✓ Compiled in 43ms
+[00:38:41.400] Server  LOG     ✓ Compiled in 67ms
+[00:38:41.484] Browser ERROR   uncaughtError: ReferenceError: school is not defined
+[00:39:00.549] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:39:00.650] Server  LOG     ✓ Compiled in 38ms
+[00:39:02.985] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:41:21.948] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:43:09.259] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:43:15.667] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[00:45:33.582] Server  LOG     ✓ Compiled in 42ms
+[00:45:43.239] Server  LOG     ✓ Compiled in 41ms
+[00:47:33.915] Server  LOG     ✓ Compiled in 39ms
+[01:16:34.267] Browser ERROR   {}
+[01:16:34.471] Browser ERROR   {}
+[01:16:34.882] Browser ERROR   {}
+[01:16:35.690] Browser ERROR   {}
+[01:16:37.296] Browser ERROR   {}
+[01:32:20.310] Browser ERROR   {}
+[02:01:01.329] Browser ERROR   {}
+[02:01:01.534] Browser ERROR   {}
+[02:01:01.942] Browser ERROR   {}
+[02:01:02.749] Browser ERROR   {}
+[02:01:04.356] Browser ERROR   {}
+[02:01:07.562] Browser ERROR   {}
+[02:01:13.969] Browser ERROR   {}
+[02:01:21.761] Server  ERROR   TypeError: fetch failed
+[02:01:21.784] Server  ERROR   TypeError: fetch failed
+[02:01:21.801] Server  ERROR   TypeError: fetch failed
+[02:01:21.813] Server  ERROR   TypeError: fetch failed
+[02:01:21.820] Server  ERROR   TypeError: fetch failed
+[02:01:21.971] Server  ERROR   TypeError: fetch failed
+[02:01:21.998] Server  ERROR   TypeError: fetch failed
+[02:01:22.014] Server  ERROR   TypeError: fetch failed
+[02:01:22.030] Server  ERROR   TypeError: fetch failed
+[02:01:22.039] Server  ERROR   TypeError: fetch failed
+[02:01:22.599] Server  ERROR   TypeError: fetch failed
+[02:01:22.614] Server  ERROR   TypeError: fetch failed
+[02:01:22.635] Server  ERROR   TypeError: fetch failed
+[02:01:22.645] Server  ERROR   TypeError: fetch failed
+[02:01:22.654] Server  ERROR   TypeError: fetch failed
+[02:01:23.422] Server  ERROR   TypeError: fetch failed
+[02:01:23.433] Server  ERROR   TypeError: fetch failed
+[02:01:23.445] Server  ERROR   TypeError: fetch failed
+[02:01:23.459] Server  ERROR   TypeError: fetch failed
+[02:01:23.470] Server  ERROR   TypeError: fetch failed
+[02:05:50.943] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[02:44:49.139] Browser WARN    Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior

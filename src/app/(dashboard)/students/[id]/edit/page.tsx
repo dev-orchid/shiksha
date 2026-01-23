@@ -459,8 +459,14 @@ export default function EditStudentPage() {
           phone: formData.phone || null,
           email: formData.email || null,
           address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          pincode: formData.pincode || null,
           roll_number: formData.roll_number || null,
           status: formData.status,
+          emergency_contact: formData.emergency_contact || null,
+          medical_conditions: formData.medical_conditions || null,
+          allergies: formData.allergies || null,
           current_class_id: formData.class_id || null,
           current_section_id: formData.section_id || null,
           previous_school: formData.previous_school || null,
@@ -646,6 +652,7 @@ export default function EditStudentPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={handleChange}
+                  maxLength={10}
                 />
                 <Input
                   label="Email"
@@ -660,6 +667,7 @@ export default function EditStudentPage() {
                 name="emergency_contact"
                 value={formData.emergency_contact}
                 onChange={handleChange}
+                maxLength={10}
               />
               <Input
                 label="Address"
@@ -1053,6 +1061,7 @@ export default function EditStudentPage() {
                 type="tel"
                 value={newParentForm.phone}
                 onChange={(e) => setNewParentForm(prev => ({ ...prev, phone: e.target.value }))}
+                maxLength={10}
               />
               <Input
                 label="Email"

@@ -71,7 +71,9 @@ var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$g
 ;
 ;
 ;
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://shiksha.orchidsw.com";
 const metadata = {
+    metadataBase: new URL(siteUrl),
     title: "Shiksha - School Management System | Orchid Software",
     description: "Transform education management into digital excellence. Comprehensive cloud-based School Management System for student management, attendance, fees, exams, and WhatsApp integration. From 100 to 10,000+ students.",
     icons: {
@@ -91,11 +93,11 @@ const metadata = {
     openGraph: {
         title: "Shiksha - School Management System",
         description: "Streamline administrative operations, enhance communication, and improve efficiency with our comprehensive cloud-based School Management System.",
-        url: "https://shiksha.orchidsw.com",
+        url: siteUrl,
         siteName: "Shiksha ERP",
         images: [
             {
-                url: "/shiksha-erp.jpg",
+                url: `${siteUrl}/shiksha-erp.jpg`,
                 width: 1200,
                 height: 630,
                 alt: "Shiksha ERP - School Management System"
@@ -109,7 +111,7 @@ const metadata = {
         title: "Shiksha - School Management System",
         description: "Transform Education Management Into Digital Excellence. Comprehensive cloud-based School Management System for modern schools.",
         images: [
-            "/shiksha-erp.jpg"
+            `${siteUrl}/shiksha-erp.jpg`
         ]
     }
 };
@@ -121,12 +123,12 @@ function RootLayout({ children }) {
             children: children
         }, void 0, false, {
             fileName: "[project]/src/app/layout.tsx",
-            lineNumber: 57,
+            lineNumber: 60,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/layout.tsx",
-        lineNumber: 56,
+        lineNumber: 59,
         columnNumber: 5
     }, this);
 }

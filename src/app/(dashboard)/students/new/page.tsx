@@ -433,6 +433,7 @@ export default function AddStudentPage() {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="Enter phone number"
+                    maxLength={10}
                   />
                 </div>
               </CardContent>
@@ -554,6 +555,7 @@ export default function AddStudentPage() {
                       value={formData.father_phone}
                       onChange={handleChange}
                       placeholder="Enter father's phone"
+                      maxLength={10}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -601,6 +603,7 @@ export default function AddStudentPage() {
                       value={formData.mother_phone}
                       onChange={handleChange}
                       placeholder="Enter mother's phone"
+                      maxLength={10}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">

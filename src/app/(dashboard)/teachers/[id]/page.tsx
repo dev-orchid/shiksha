@@ -26,6 +26,7 @@ import {
   IndianRupee,
   Save,
   X,
+  IdCard,
 } from 'lucide-react'
 import { getEmployeeTypeLabel } from '@/lib/constants/employee-types'
 
@@ -680,6 +681,11 @@ export default function TeacherDetailPage() {
                 <Link href="/teachers/assignments" className="block">
                   <Button variant="outline" className="w-full justify-start" icon={<BookOpen className="h-4 w-4" />}>
                     Manage Assignments
+                  </Button>
+                </Link>
+                <Link href={`/teachers/${teacher.id}/id-card`} className="block">
+                  <Button variant="outline" className="w-full justify-start" icon={<IdCard className="h-4 w-4" />}>
+                    Generate ID Card
                   </Button>
                 </Link>
               </div>

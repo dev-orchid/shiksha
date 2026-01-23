@@ -17,6 +17,7 @@ import {
   Trash2,
   Users,
   IndianRupee,
+  IdCard,
 } from 'lucide-react'
 
 interface Student {
@@ -172,6 +173,11 @@ export default function StudentsPage() {
           <p className="text-gray-500 mt-1">Manage all students in your school</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/students/id-cards">
+            <Button variant="outline" icon={<IdCard className="h-4 w-4" />}>
+              Bulk ID Cards
+            </Button>
+          </Link>
           <Link href="/students/import">
             <Button variant="outline" icon={<Upload className="h-4 w-4" />}>
               Import

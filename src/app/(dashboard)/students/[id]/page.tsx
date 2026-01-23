@@ -20,6 +20,7 @@ import {
   FileText,
   CreditCard,
   Clock,
+  IdCard,
 } from 'lucide-react'
 
 interface Student {
@@ -429,6 +430,11 @@ export default function StudentDetailPage() {
                 <Link href={`/exams/results?student=${student.id}`} className="block">
                   <Button variant="outline" className="w-full justify-start" icon={<FileText className="h-4 w-4" />}>
                     View Results
+                  </Button>
+                </Link>
+                <Link href={`/students/${student.id}/id-card`} className="block">
+                  <Button variant="outline" className="w-full justify-start" icon={<IdCard className="h-4 w-4" />}>
+                    Generate ID Card
                   </Button>
                 </Link>
               </div>
