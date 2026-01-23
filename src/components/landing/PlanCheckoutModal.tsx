@@ -7,6 +7,7 @@ import { X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 declare global {
   interface Window {
     TM?: {
+      init: (companyId: string, listId: string) => void
       identify: (data: { name: string; email: string; phone: string }) => void
     }
   }

@@ -611,10 +611,13 @@ export default function LandingPage() {
       <Script
         src="https://track-mate-server.vercel.app/tm.js"
         strategy="afterInteractive"
+        data-company="TM-PZ7ZK"
+        onLoad={() => {
+          if (typeof window !== 'undefined' && window.TM) {
+            window.TM.init('TM-PZ7ZK', 'LST-93LNE5')
+          }
+        }}
       />
-      <Script id="trackmate-init" strategy="afterInteractive">
-        {`TM.init('TM-PZ7ZK', 'LST-93LNE5');`}
-      </Script>
     </div>
   )
 }
