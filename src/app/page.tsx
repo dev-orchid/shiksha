@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import Script from 'next/script'
 import { ArrowRight, Users, BookOpen, DollarSign, BarChart3, CheckCircle2, Shield, Cloud, Smartphone, Zap } from 'lucide-react'
 import { PlanCheckoutModal } from '@/components/landing/PlanCheckoutModal'
 
@@ -605,6 +606,15 @@ export default function LandingPage() {
         planType={selectedPlan}
         paymentConfig={paymentConfig}
       />
+
+      {/* TrackMate Tracking Snippet for List: Shiksha System Buyer */}
+      <Script
+        src="https://track-mate-server.vercel.app/tm.js"
+        strategy="afterInteractive"
+      />
+      <Script id="trackmate-init" strategy="afterInteractive">
+        {`TM.init('TM-PZ7ZK', 'LST-93LNE5');`}
+      </Script>
     </div>
   )
 }

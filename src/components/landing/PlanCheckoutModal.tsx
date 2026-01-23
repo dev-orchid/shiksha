@@ -3,6 +3,15 @@
 import { useState, useEffect } from 'react'
 import { X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
+// TrackMate global type
+declare global {
+  interface Window {
+    TM?: {
+      identify: (data: { name: string; email: string; phone: string }) => void
+    }
+  }
+}
+
 // Razorpay types - local to this file to avoid global conflicts
 interface LocalRazorpayOptions {
   key: string
@@ -149,6 +158,15 @@ export function PlanCheckoutModal({ isOpen, onClose, planType, paymentConfig }: 
 
     setLoading(true)
     setError(null)
+
+    // Identify user in TrackMate
+    if (typeof window !== 'undefined' && window.TM?.identify) {
+      window.TM.identify({
+        name: formData.customer_name,
+        email: formData.customer_email,
+        phone: formData.customer_phone,
+      })
+    }
 
     try {
       // Initiate payment order
